@@ -23,7 +23,7 @@ from torch.backends import cudnn
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import f1_score, GradualWarmupSchedulerV2
 from models import DenseCrossEntropy, Swish_module
-from models import ArcFaceLossAdaptiveMargin, Effnet_Landmark, RexNet20_Landmark, ResNest101_Landmark
+from models import ArcFaceLossAdaptiveMargin, Effnet, RexNet20, ResNest101
 
 
 def parse_args():
@@ -126,7 +126,7 @@ def main():
     print(f"out_dim = {out_dim}")
 
     # get adaptive margin
-    tmp = np.sqrt(1 / np.sqrt(df['landmark_id'].value_counts().sort_index().values))
+    tmp = np.sqrt(1 / np.sqrt(df['label_group'].value_counts().sort_index().values))
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
 
     # get augmentations
@@ -222,11 +222,11 @@ if __name__ == '__main__':
     os.makedirs(args.log_dir, exist_ok=True)
 
     if args.enet_type == 'nest101':
-        ModelClass = ResNest101_Landmark
+        ModelClass = ResNest101
     elif args.enet_type == 'rex20':
-        ModelClass = RexNet20_Landmark
+        ModelClass = RexNet20
     else:
-        ModelClass = Effnet_Landmark
+        ModelClass = Effnet
 
     set_seed(0)
     main()
