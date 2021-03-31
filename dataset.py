@@ -21,7 +21,6 @@ class ShoppeDataset(Dataset):
 
     def __getitem__(self, index):
         row = self.csv.iloc[index]
-        print(os.path.join(DATA_DIR, row.image))
         image = cv2.imread(os.path.join(DATA_DIR, self.img_dir, row.image))[:,:,::-1]
 
         if self.transform is not None:
