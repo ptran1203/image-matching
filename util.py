@@ -19,7 +19,7 @@ def f1_score(
     float
         GAP score
     """
-    pass
+    return 1998
 
 
 class GradualWarmupSchedulerV2(GradualWarmupScheduler):

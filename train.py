@@ -21,7 +21,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
-from util import GradualWarmupSchedulerV2
+from util import f1_score, GradualWarmupSchedulerV2
 from models import DenseCrossEntropy, Swish_module
 from models import ArcFaceLossAdaptiveMargin, Effnet_Landmark, RexNet20_Landmark, ResNest101_Landmark
 
@@ -31,12 +31,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--kernel-type', type=str, required=True)
     parser.add_argument('--data-dir', type=str, default='/raid/GLD2')
-    parser.add_argument('--train-step', type=int, required=True)
+    parser.add_argument('--train-step', type=int, default=1)
     parser.add_argument('--image-size', type=int, required=True)
-    parser.add_argument("--local_rank", type=int)
     parser.add_argument('--enet-type', type=str, required=True)
-    parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--num-workers', type=int, default=32)
+    parser.add_argument('--batch-size', type=int, default=8)
+    parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--init-lr', type=float, default=1e-4)
     parser.add_argument('--n-epochs', type=int, default=15)
     parser.add_argument('--start-from-epoch', type=int, default=1)
@@ -44,7 +43,6 @@ def parse_args():
     parser.add_argument('--DEBUG', action='store_true')
     parser.add_argument('--model-dir', type=str, default='./weights')
     parser.add_argument('--log-dir', type=str, default='./logs')
-    parser.add_argument('--CUDA_VISIBLE_DEVICES', type=str, default='0,1,2,3,4,5,6,7')
     parser.add_argument('--fold', type=int, default=0)
     parser.add_argument('--load-from', type=str, default='')
     args, _ = parser.parse_known_args()
@@ -84,7 +82,7 @@ def train_epoch(model, loader, optimizer, criterion):
 
     return train_loss
 
-def val_epoch(model, valid_loader, criterion, get_output=False):
+def val_epoch(model, valid_loader, criterion):
 
     model.eval()
     val_loss = []
@@ -114,20 +112,17 @@ def val_epoch(model, valid_loader, criterion, get_output=False):
         PREDS_M = torch.cat(PREDS_M).numpy()
         TARGETS = torch.cat(TARGETS)
 
-    if get_output:
-        return LOGITS_M
-    else:
-        acc_m = (PREDS_M == TARGETS.numpy()).mean() * 100.
-        y_true = {idx: target if target >=0 else None for idx, target in enumerate(TARGETS)}
-        y_pred_m = {idx: (pred_cls, conf) for idx, (pred_cls, conf) in enumerate(zip(PREDS_M, PRODS_M))}
-        gap_m = global_average_precision_score(y_true, y_pred_m)
-        return val_loss, acc_m, gap_m
+    acc_m = (PREDS_M == TARGETS.numpy()).mean() * 100.
+    y_true = {idx: target if target >=0 else None for idx, target in enumerate(TARGETS)}
+    y_pred_m = {idx: (pred_cls, conf) for idx, (pred_cls, conf) in enumerate(zip(PREDS_M, PRODS_M))}
+    val_f1_score = f1_score(y_true, y_pred_m)
+    return val_loss, acc_m, val_f1_score
 
 
 def main():
 
     # get dataframe
-    df, out_dim = get_df(args.kernel_type, args.data_dir, args.train_step)
+    df, out_dim = get_df()
     print(f"out_dim = {out_dim}")
 
     # get adaptive margin
@@ -139,10 +134,11 @@ def main():
 
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]
-    df_valid = df[df['fold'] == args.fold].reset_index(drop=True).query("index % 15==0")
+    df_valid = df[df['fold'] == args.fold].reset_index(drop=True)
 
-    dataset_train = LandmarkDataset(df_train, 'train', 'train', transform=transforms_train)
-    dataset_valid = LandmarkDataset(df_valid, 'train', 'val', transform=transforms_val)
+    dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
+    dataset_valid = ShoppeDataset(df_valid, 'val', transform=transforms_val)
+
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
     # model
@@ -161,7 +157,7 @@ def main():
 
     # load pretrained
     if len(args.load_from) > 0:
-        checkpoint = torch.load(args.load_from,  map_location='cuda:{}'.format(args.local_rank))
+        checkpoint = torch.load(args.load_from,  map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
         state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}    
         if args.train_step==1: 
@@ -169,8 +165,6 @@ def main():
             model.load_state_dict(state_dict, strict=False)
         else:
             model.load_state_dict(state_dict, strict=True)        
-#             if 'optimizer_state_dict' in checkpoint:
-#                 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])   
         del checkpoint, state_dict
         torch.cuda.empty_cache()
         import gc
@@ -197,19 +191,18 @@ def main():
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
         val_loss, acc_m, gap_m = val_epoch(model, valid_loader, criterion)
 
-        if args.local_rank == 0:
-            content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, gap_m: {(gap_m):.6f}.'
-            print(content)
-            with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
-                appender.write(content + '\n')
+        content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, gap_m: {(gap_m):.6f}.'
+        print(content)
+        with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
+            appender.write(content + '\n')
 
-            print('gap_m_max ({:.6f} --> {:.6f}). Saving model ...'.format(gap_m_max, gap_m))
-            torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        }, model_file)            
-            gap_m_max = gap_m
+        print('gap_m_max ({:.6f} --> {:.6f}). Saving model ...'.format(gap_m_max, gap_m))
+        torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    }, model_file)            
+        gap_m_max = gap_m
 
         if epoch == args.stop_at_epoch:
             print(time.ctime(), 'Training Finished!')
@@ -227,7 +220,6 @@ if __name__ == '__main__':
     args = parse_args()
     os.makedirs(args.model_dir, exist_ok=True)
     os.makedirs(args.log_dir, exist_ok=True)
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.CUDA_VISIBLE_DEVICES
 
     if args.enet_type == 'nest101':
         ModelClass = ResNest101_Landmark
@@ -237,11 +229,4 @@ if __name__ == '__main__':
         ModelClass = Effnet_Landmark
 
     set_seed(0)
-
-    if args.CUDA_VISIBLE_DEVICES != '-1':
-        torch.backends.cudnn.benchmark = True
-        torch.cuda.set_device(args.local_rank)
-        torch.distributed.init_process_group(backend='nccl', init_method='env://')
-        cudnn.benchmark = True
-
     main()

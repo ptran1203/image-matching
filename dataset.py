@@ -6,23 +6,23 @@ import albumentations
 import torch
 from torch.utils.data import Dataset
 
-DATA_DIR = '/content/'
+DATA_DIR = '/content'
 
 class ShoppeDataset(Dataset):
-    def __init__(self, csv, split, mode, transform=None):
+    def __init__(self, csv, mode='train', transform=None):
 
         self.csv = csv.reset_index()
-        self.split = split
         self.mode = mode
         self.transform = transform
+        self.img_dir = 'train_images'
 
     def __len__(self):
         return self.csv.shape[0]
 
     def __getitem__(self, index):
         row = self.csv.iloc[index]
-
-        image = cv2.imread(os.path.join(DATA_DIR, row.image))[:,:,::-1]
+        print(os.path.join(DATA_DIR, row.image))
+        image = cv2.imread(os.path.join(DATA_DIR, self.img_dir, row.image))[:,:,::-1]
 
         if self.transform is not None:
             res = self.transform(image=image)
@@ -38,13 +38,15 @@ class ShoppeDataset(Dataset):
 
 
 def get_transforms(image_size):
-
+    max_size_cutout = int(image_size * 0.1)
     transforms_train = albumentations.Compose([
-        albumentations.HorizontalFlip(p=0.5),
-        # albumentations.ImageCompression(quality_lower=99, quality_upper=100),
-        albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=10, border_mode=0, p=0.7),
         albumentations.Resize(image_size, image_size),
-        albumentations.Cutout(max_h_size=int(image_size * 0.4), max_w_size=int(image_size * 0.4), num_holes=1, p=0.5),
+        albumentations.HorizontalFlip(p=0.5),
+        albumentations.JpegCompression(quality_lower=99, quality_upper=100),
+        albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=10, border_mode=0, p=0.7),
+        albumentations.MedianBlur(blur_limit=(3, 5), p=0.9),
+        albumentations.RandomBrightnessContrast(p=0.6),
+        albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=3, p=0.5),
         albumentations.Normalize()
     ])
 
