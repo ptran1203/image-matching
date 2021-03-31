@@ -56,22 +56,8 @@ def get_transforms(image_size):
     return transforms_train, transforms_val
 
 
-def get_df(train_step):
-
-    df = pd.read_csv( 'train.csv')
-
-    if train_step == 0:
-        df_train = pd.read_csv(os.path.join(DATA_DIR, 'train.csv'))
-    else:
-        cls_81313 = df.landmark_id.unique()
-        df_train = pd.read_csv(os.path.join(DATA_DIR, 'train.csv')).drop(columns=['url']).set_index('landmark_id').loc[cls_81313].reset_index()
-        
-    df_train['filepath'] = df_train['id'].apply(lambda x: os.path.join(DATA_DIR, 'train', x[0], x[1], x[2], f'{x}.jpg'))
-
-    landmark_id2idx = {landmark_id: idx for idx, landmark_id in enumerate(sorted(df['landmark_id'].unique()))}
-    idx2landmark_id = {idx: landmark_id for idx, landmark_id in enumerate(sorted(df['landmark_id'].unique()))}
-    df['landmark_id'] = df['landmark_id'].map(landmark_id2idx)
-
-    out_dim = df.landmark_id.nunique()
+def get_df(train_step=0):
+    df = pd.read_csv(os.path.join(DATA_DIR, 'train.csv'))
+    out_dim = df.label_group.nunique()
 
     return df, out_dim
