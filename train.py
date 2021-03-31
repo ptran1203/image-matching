@@ -182,11 +182,8 @@ def main():
         print(time.ctime(), 'Epoch:', epoch)
         scheduler_warmup.step(epoch - 1)
 
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
-        train_sampler.set_epoch(epoch)
-
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
-                                                  shuffle=train_sampler is None, sampler=train_sampler, drop_last=True)        
+                                                  shuffle=True, drop_last=True)        
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
         val_loss, acc_m, gap_m = val_epoch(model, valid_loader, criterion)
