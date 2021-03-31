@@ -30,10 +30,10 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--kernel-type', type=str, required=True)
-    parser.add_argument('--data-dir', type=str, default='/raid/GLD2')
-    parser.add_argument('--train-step', type=int, default=1)
     parser.add_argument('--image-size', type=int, required=True)
     parser.add_argument('--enet-type', type=str, required=True)
+    parser.add_argument('--data-dir', type=str, default='/raid/GLD2')
+    parser.add_argument('--train-step', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--init-lr', type=float, default=1e-4)
