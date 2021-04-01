@@ -233,7 +233,7 @@ def main(args):
                                                   shuffle=True, drop_last=True)        
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
-        val_loss, f1score = val_epoch(model, valid_loader, criterion)
+        val_loss, f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
             f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, f1score: {(f1score):.6f}.'
