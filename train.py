@@ -86,7 +86,7 @@ def train_epoch(model, loader, optimizer, criterion):
         train_loss.append(loss_np)
         smooth_loss = sum(train_loss[-100:]) / min(len(train_loss), 100)
 
-        acc_m = (preds_m.detach().cpu().numpy() == arget.detach().cpu().numpy()).mean() * 100
+        acc_m = (preds_m.detach().cpu().numpy() == target.detach().cpu().numpy()).mean() * 100
         accs.append(acc_m)
         bar.set_description('loss: %.5f, smth: %.5f, acc: %.5f' % (loss_np, smooth_loss, acc_m))
 
