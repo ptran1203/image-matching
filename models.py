@@ -76,7 +76,7 @@ class ArcMarginProduct_subcenter(nn.Module):
         cosine_all = F.linear(F.normalize(features), F.normalize(self.weight))
         cosine_all = cosine_all.view(-1, self.out_features, self.k)
         cosine, _ = torch.max(cosine_all, dim=2)
-        return cosine   
+        return cosine
 
 
 class ArcFaceLossAdaptiveMargin(nn.modules.Module):
@@ -102,7 +102,7 @@ class ArcFaceLossAdaptiveMargin(nn.modules.Module):
         output = (labels * phi) + ((1.0 - labels) * cosine)
         output *= self.s
         loss = self.crit(output, labels)
-        return loss     
+        return loss
 
 
 class Effnet(nn.Module):
@@ -120,8 +120,10 @@ class Effnet(nn.Module):
 
     def forward(self, x):
         x = self.extract(x)
-        logits_m = self.metric_classify(self.swish(self.feat(x)))
-        return logits_m
+        x = self.swish(self.feat(x))
+        logits_m = self.metric_classify(x)
+
+        return F.normalize(x), logits_m
 
 
 class RexNet20(nn.Module):
@@ -144,8 +146,10 @@ class RexNet20(nn.Module):
 
     def forward(self, x):
         x = self.extract(x)
-        logits_m = self.metric_classify(self.swish(self.feat(x)))
-        return logits_m
+        x = self.swish(self.feat(x))
+        logits_m = self.metric_classify(x)
+
+        return F.normalize(x), logits_m
         
 
 class ResNest101(nn.Module):
@@ -163,5 +167,7 @@ class ResNest101(nn.Module):
 
     def forward(self, x):
         x = self.extract(x)
-        logits_m = self.metric_classify(self.swish(self.feat(x)))
-        return logits_m
+        x = self.swish(self.feat(x))
+        logits_m = self.metric_classify(x)
+
+        return F.normalize(x), logits_m

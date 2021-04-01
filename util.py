@@ -21,6 +21,13 @@ def f1_score(
     """
     return 1998
 
+def row_wise_f1_score(labels, preds):
+    scores = []
+    for label, pred in zip(labels, preds):
+        n = len(np.intersect1d(label, pred))
+        score = 2 * n / (len(label)+len(pred))
+        scores.append(score)
+    return scores, np.mean(scores)
 
 class GradualWarmupSchedulerV2(GradualWarmupScheduler):
     def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):

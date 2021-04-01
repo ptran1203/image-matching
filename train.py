@@ -70,7 +70,7 @@ def train_epoch(model, loader, optimizer, criterion):
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
 
-        logits_m = model(data)
+        _, logits_m = model(data)
         loss = criterion(logits_m, target)
         loss.backward()
         optimizer.step()
@@ -96,7 +96,7 @@ def val_epoch(model, valid_loader, criterion):
         for (data, target) in tqdm(valid_loader):
             data, target = data.cuda(), target.cuda()
 
-            logits_m = model(data)
+            feat, logits_m = model(data)
 
             lmax_m = logits_m.max(1)
             probs_m = lmax_m.values
@@ -177,7 +177,7 @@ def main(args):
     scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=1, after_scheduler=scheduler_cosine)
 
     # train & valid loop
-    gap_m_max = 0.
+    best_score = 0.
     model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
@@ -188,20 +188,20 @@ def main(args):
                                                   shuffle=True, drop_last=True)        
 
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
-        val_loss, acc_m, gap_m = val_epoch(model, valid_loader, criterion)
+        val_loss, acc_m, f1score = val_epoch(model, valid_loader, criterion)
 
         content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, gap_m: {(gap_m):.6f}.'
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
             appender.write(content + '\n')
 
-        print('gap_m_max ({:.6f} --> {:.6f}). Saving model ...'.format(gap_m_max, gap_m))
+        print('best f1 score ({:.6f} --> {:.6f}). Saving model ...'.format(best_score, f1score))
         torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     }, model_file)            
-        gap_m_max = gap_m
+        best_score = f1score
 
         if epoch == args.stop_at_epoch:
             print(time.ctime(), 'Training Finished!')
