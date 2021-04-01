@@ -190,7 +190,7 @@ def main(args):
         train_loss = train_epoch(model, train_loader, optimizer, criterion)
         val_loss, acc_m, f1score = val_epoch(model, valid_loader, criterion)
 
-        content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, gap_m: {(gap_m):.6f}.'
+        content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, f1score: {(f1score):.6f}.'
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
             appender.write(content + '\n')
