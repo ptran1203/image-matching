@@ -64,6 +64,7 @@ def train_epoch(model, loader, optimizer, criterion):
 
     model.train()
     train_loss = []
+    accs = []
 
     bar = tqdm(loader)
     for (data, target) in bar:
@@ -81,20 +82,15 @@ def train_epoch(model, loader, optimizer, criterion):
         lmax_m = logits_m.max(1)
         preds_m = lmax_m.indices
 
-        PREDS_M.append(preds_m.detach().cpu())
-        TARGETS.append(target.detach().cpu())
-
         loss_np = loss.detach().cpu().numpy()
         train_loss.append(loss_np)
         smooth_loss = sum(train_loss[-100:]) / min(len(train_loss), 100)
 
-        PREDS_M = np.array(PREDS_M)
-        TARGETS = np.array(TARGETS)
-        acc_m = (PREDS_M == TARGETS.numpy()).mean() * 100
-
+        acc_m = (preds_m.detach().cpu().numpy() == arget.detach().cpu().numpy()).mean() * 100
+        accs.append(acc_m)
         bar.set_description('loss: %.5f, smth: %.5f, acc: %.5f' % (loss_np, smooth_loss, acc_m))
 
-    return train_loss
+    return train_loss, accs
 
 def val_epoch(model, valid_loader, criterion):
 
@@ -199,10 +195,11 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
                                                   shuffle=True, drop_last=True)        
 
-        train_loss = train_epoch(model, train_loader, optimizer, criterion)
+        train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
         val_loss, acc_m, f1score = val_epoch(model, valid_loader, criterion)
 
-        content = time.ctime() + ' ' + f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, f1score: {(f1score):.6f}.'
+        content = time.ctime() + ' ' + \
+            f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, f1score: {(f1score):.6f}.'
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
             appender.write(content + '\n')
