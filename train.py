@@ -45,6 +45,8 @@ def parse_args():
     parser.add_argument('--log-dir', type=str, default='./logs')
     parser.add_argument('--fold', type=int, default=0)
     parser.add_argument('--load-from', type=str, default='')
+    parser.add_argument('--groups', type=int, default=0)
+
     args, _ = parser.parse_known_args()
     return args
 
@@ -119,10 +121,10 @@ def val_epoch(model, valid_loader, criterion):
     return val_loss, acc_m, val_f1_score
 
 
-def main():
+def main(args):
 
     # get dataframe
-    df, out_dim = get_df()
+    df, out_dim = get_df(args.groups)
     print(f"out_dim = {out_dim}")
 
     # get adaptive margin
@@ -226,4 +228,4 @@ if __name__ == '__main__':
         ModelClass = Effnet
 
     set_seed(0)
-    main()
+    main(args)

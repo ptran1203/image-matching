@@ -57,8 +57,13 @@ def get_transforms(image_size):
     return transforms_train, transforms_val
 
 
-def get_df(train_step=0):
+def get_df(groups=0):
     df = pd.read_csv(os.path.join(DATA_DIR, 'train.csv'))
+
+    if groups > 0:
+        selected = df.label_group.unique()[:groups]
+        df = df[df.label_group.isin(selected)]
+
     out_dim = df.label_group.nunique()
 
     return df, out_dim
