@@ -149,6 +149,8 @@ def main(args):
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
     dataset_valid = ShoppeDataset(df_valid, 'val', transform=transforms_val)
 
+    print(f'Train on {len(df_train)} images, validate on {len(df_valid)} images')
+
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
     # model
