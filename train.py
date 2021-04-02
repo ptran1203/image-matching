@@ -264,6 +264,7 @@ def main(args):
 if __name__ == '__main__':
 
     args = parse_args()
+    print(args)
     os.makedirs(args.model_dir, exist_ok=True)
     os.makedirs(args.log_dir, exist_ok=True)
 
