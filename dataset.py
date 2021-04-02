@@ -9,19 +9,19 @@ from torch.utils.data import Dataset
 DATA_DIR = '/content'
 
 class ShoppeDataset(Dataset):
-    def __init__(self, csv, mode='train', transform=None):
+    def __init__(self, csv, mode='train', transform=None, image_dir=os.path.join(DATA_DIR, 'train_images')):
 
         self.csv = csv.reset_index()
         self.mode = mode
         self.transform = transform
-        self.img_dir = 'train_images'
+        self.img_dir = image_dir'
 
     def __len__(self):
         return self.csv.shape[0]
 
     def __getitem__(self, index):
         row = self.csv.iloc[index]
-        image = cv2.imread(os.path.join(DATA_DIR, self.img_dir, row.image))[:,:,::-1]
+        image = cv2.imread(os.path.join(self.img_dir, row.image))[:,:,::-1]
 
         if self.transform is not None:
             res = self.transform(image=image)
