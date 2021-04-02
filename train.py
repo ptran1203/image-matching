@@ -2,6 +2,7 @@ import os
 import cv2
 import math
 import time
+import gc
 import pickle
 import random
 import argparse
@@ -9,6 +10,7 @@ import albumentations
 import numpy as np
 import pandas as pd
 from tqdm import tqdm as tqdm
+from tqdm import tqdm_notebook
 from sklearn.metrics import cohen_kappa_score, confusion_matrix
 
 import torch
@@ -21,7 +23,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
-from util import f1_score, GradualWarmupSchedulerV2
+from util import f1_score, GradualWarmupSchedulerV2, row_wise_f1_score
 from models import DenseCrossEntropy, Swish_module
 from models import ArcFaceLossAdaptiveMargin, Effnet, RexNet20, ResNest101
 
@@ -60,6 +62,52 @@ def set_seed(seed=0):
     torch.backends.cudnn.deterministic = True
 
 
+def search_similiar_images(embeds, test_df):
+    import cupy as cp
+
+    embeds = cp.array(embeds)
+
+    preds = []
+    CHUNK = 1024 * 4
+
+    CTS = len(embeds) // CHUNK
+
+    if len(embeds) % CHUNK!=0:
+        CTS += 1
+
+    for j in range(CTS):
+
+        a = j * CHUNK
+        b = (j + 1) * CHUNK
+        b = min(b,len(embeds))
+    
+        cts = cp.matmul(embeds, embeds[a:b].T).T
+        
+        for k in range(b-a):
+            # print(sorted(cts[k,], reverse=True))
+            IDX = cp.where(cts[k,]>0.5)[0]
+            o = test_df.iloc[cp.asnumpy(IDX)].posting_id.values
+            preds.append(o)
+
+    return preds
+
+
+def generate_embeddings(model, test_loader):
+    embeds = []
+
+    with torch.no_grad():
+        for img in tqdm_notebook(test_loader): 
+            img = img.cuda()
+            feat, _ = model(img)
+
+            image_embeddings = feat.detach().cpu().numpy()
+            embeds.append(image_embeddings)
+        
+    _ = gc.collect()
+    image_embeddings = np.concatenate(embeds)
+    return image_embeddings
+
+
 def train_epoch(model, loader, optimizer, criterion):
 
     model.train()
@@ -92,13 +140,11 @@ def train_epoch(model, loader, optimizer, criterion):
 
     return train_loss, accs
 
-def val_epoch(model, valid_loader, criterion):
+def val_epoch(model, valid_loader, criterion, valid_df):
 
     model.eval()
     val_loss = []
-    PRODS_M = []
-    PREDS_M = []
-    TARGETS = []
+    embeds = []
 
     with torch.no_grad():
         for (data, target) in tqdm(valid_loader):
@@ -106,27 +152,16 @@ def val_epoch(model, valid_loader, criterion):
 
             feat, logits_m = model(data)
 
-            lmax_m = logits_m.max(1)
-            probs_m = lmax_m.values
-            preds_m = lmax_m.indices
-
-            PRODS_M.append(probs_m.detach().cpu())
-            PREDS_M.append(preds_m.detach().cpu())
-            TARGETS.append(target.detach().cpu())
-
             loss = criterion(logits_m, target)
             val_loss.append(loss.detach().cpu().numpy())
+            embeds.append(feat.detach().cpu().numpy())
 
         val_loss = np.mean(val_loss)
-        PRODS_M = torch.cat(PRODS_M).numpy()
-        PREDS_M = torch.cat(PREDS_M).numpy()
-        TARGETS = torch.cat(TARGETS)
+        embeds = np.concatenate(embeds)
 
-    acc_m = (PREDS_M == TARGETS.numpy()).mean() * 100
-    y_true = {idx: target if target >=0 else None for idx, target in enumerate(TARGETS)}
-    y_pred_m = {idx: (pred_cls, conf) for idx, (pred_cls, conf) in enumerate(zip(PREDS_M, PRODS_M))}
-    val_f1_score = f1_score(y_true, y_pred_m)
-    return val_loss, acc_m, val_f1_score
+    preds = search_similiar_images(embeds, valid_df)
+    _, val_f1_score = row_wise_f1_score(valid_df.target, preds)
+    return val_loss, val_f1_score
 
 
 def main(args):
@@ -148,6 +183,8 @@ def main(args):
 
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
     dataset_valid = ShoppeDataset(df_valid, 'val', transform=transforms_val)
+
+    print(f'Train on {len(df_train)} images, validate on {len(df_valid)} images')
 
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
@@ -196,10 +233,10 @@ def main(args):
                                                   shuffle=True, drop_last=True)        
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
-        val_loss, acc_m, f1score = val_epoch(model, valid_loader, criterion)
+        val_loss, f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
-            f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, acc_m: {(acc_m):.6f}, f1score: {(f1score):.6f}.'
+            f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, f1score: {(f1score):.6f}.'
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
             appender.write(content + '\n')
