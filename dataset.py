@@ -14,7 +14,7 @@ class ShoppeDataset(Dataset):
         self.csv = csv.reset_index()
         self.mode = mode
         self.transform = transform
-        self.img_dir = image_dir'
+        self.img_dir = image_dir
 
     def __len__(self):
         return self.csv.shape[0]
