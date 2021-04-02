@@ -35,7 +35,6 @@ def parse_args():
     parser.add_argument('--image-size', type=int, required=True)
     parser.add_argument('--enet-type', type=str, required=True)
     parser.add_argument('--data-dir', type=str, default='/raid/GLD2')
-    parser.add_argument('--train-step', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--num-workers', type=int, default=4)
     parser.add_argument('--init-lr', type=float, default=1e-4)
@@ -209,14 +208,11 @@ def main(args):
         checkpoint = torch.load(args.load_from,  map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
         state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}    
-        if args.train_step==1: 
-            del state_dict['metric_classify.weight']
-            model.load_state_dict(state_dict, strict=False)
-        else:
-            model.load_state_dict(state_dict, strict=True)        
+        model.load_state_dict(state_dict, strict=True)
         del checkpoint, state_dict
         torch.cuda.empty_cache()
         gc.collect()
+        print(f"Loaded weight from {args.load_from}")
 
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
