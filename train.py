@@ -211,7 +211,7 @@ def main(args):
 
 
     # load pretrained
-    if len(args.load_from) > 0:
+    if args.load_from and args.load_from != 'none':
         checkpoint = torch.load(args.load_from,  map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
         state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}    
