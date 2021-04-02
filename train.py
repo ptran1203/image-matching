@@ -47,6 +47,7 @@ def parse_args():
     parser.add_argument('--fold', type=int, default=0)
     parser.add_argument('--load-from', type=str, default='')
     parser.add_argument('--groups', type=int, default=0)
+    parser.add_argument('--stage', type=int, default=1)
 
     args, _ = parser.parse_known_args()
     return args
@@ -160,6 +161,12 @@ def val_epoch(model, valid_loader, criterion, valid_df):
 
     preds = search_similiar_images(embeds, valid_df)
     _, val_f1_score = row_wise_f1_score(valid_df.target, preds)
+    if val_f1_score == 0:
+        print('val_f1_score', val_f1_score)
+        valid_df_clone = valid_df.copy()
+        valid_df_clone['preds'] = preds
+        valid_df_clone.to_csv('/content/valid.csv', index=False)
+
     return val_loss, val_f1_score
 
 
@@ -220,7 +227,7 @@ def main(args):
 
     # train & valid loop
     best_score = 0.0
-    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
+    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
         print(time.ctime(), 'Epoch:', epoch)
