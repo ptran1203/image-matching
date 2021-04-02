@@ -9,7 +9,7 @@ import argparse
 import albumentations
 import numpy as np
 import pandas as pd
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 # from tqdm import tqdm_notebook
 from sklearn.metrics import cohen_kappa_score, confusion_matrix
 
@@ -168,6 +168,7 @@ def main(args):
 
     # get dataframe
     df, out_dim = get_df(args.groups)
+    print(list(df.columns.values))
     print(df.head())
     print(f"out_dim = {out_dim}")
 
