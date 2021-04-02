@@ -107,9 +107,9 @@ class ArcFaceLossAdaptiveMargin(nn.modules.Module):
 
 class Effnet(nn.Module):
 
-    def __init__(self, enet_type, out_dim):
+    def __init__(self, enet_type, out_dim, pretrained=True):
         super(Effnet, self).__init__()
-        self.enet = geffnet.create_model(enet_type.replace('-', '_'), pretrained=True)
+        self.enet = geffnet.create_model(enet_type.replace('-', '_'), pretrained=pretrained)
         self.feat = nn.Linear(self.enet.classifier.in_features, 512)
         self.swish = Swish_module()
         self.metric_classify = ArcMarginProduct_subcenter(512, out_dim)
@@ -128,13 +128,13 @@ class Effnet(nn.Module):
 
 class RexNet20(nn.Module):
 
-    def __init__(self, enet_type, out_dim, load_pretrained=True):
+    def __init__(self, enet_type, out_dim, pretrained=True):
         super(RexNet20, self).__init__()
         self.enet = ReXNetV1(width_mult=2.0)
-        if load_pretrained:
-            pretrain_wts = "./rexnetv1_2.0x.pth"            
+        if pretrained:
+            pretrain_wts = "./rexnetv1_2.0x.pth"
             sd = torch.load(pretrain_wts)
-            self.enet.load_state_dict(sd, strict=True)        
+            self.enet.load_state_dict(sd, strict=True)
         
         self.feat = nn.Linear(self.enet.output[1].in_channels, 512)
         self.swish = Swish_module()
@@ -154,9 +154,9 @@ class RexNet20(nn.Module):
 
 class ResNest101(nn.Module):
 
-    def __init__(self, enet_type, out_dim):
+    def __init__(self, enet_type, out_dim, pretrained=True):
         super(ResNest101, self).__init__()
-        self.enet = resnest101(pretrained=True)
+        self.enet = resnest101(pretrained=pretrained)
         self.feat = nn.Linear(self.enet.fc.in_features, 512)
         self.swish = Swish_module()
         self.metric_classify = ArcMarginProduct_subcenter(512, out_dim)
