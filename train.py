@@ -183,7 +183,7 @@ def main(args):
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
 
     # get augmentations
-    transforms_train, transforms_val = get_transforms(args.image_size)
+    transforms_train, transforms_val = get_transforms(args.image_size, args.stage)
 
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]

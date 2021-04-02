@@ -36,18 +36,42 @@ class ShoppeDataset(Dataset):
             return torch.tensor(image), torch.tensor(row.label_group)
 
 
-def get_transforms(image_size):
+def get_transforms(image_size, stage=1):
     max_size_cutout = int(image_size * 0.1)
-    transforms_train = albumentations.Compose([
-        albumentations.Resize(image_size, image_size),
-        albumentations.HorizontalFlip(p=0.5),
-        albumentations.JpegCompression(quality_lower=99, quality_upper=100),
-        albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=10, border_mode=0, p=0.7),
-        albumentations.MedianBlur(blur_limit=(3, 5), p=0.9),
-        albumentations.RandomBrightnessContrast(p=0.6),
-        albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=3, p=0.5),
-        albumentations.Normalize()
-    ])
+    if stage == 1:
+        transforms_train = albumentations.Compose([
+            albumentations.Resize(image_size, image_size),
+            albumentations.HorizontalFlip(p=0.5),
+            albumentations.JpegCompression(quality_lower=99, quality_upper=100),
+            albumentations.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=10, border_mode=0, p=0.3),
+            albumentations.MedianBlur(blur_limit=(3, 5), p=0.3),
+            albumentations.RandomBrightnessContrast(p=0.3),
+            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=3, p=0.3),
+            albumentations.Normalize()
+        ])
+    elif stage == 2:
+        transforms_train = albumentations.Compose([
+            albumentations.Resize(image_size, image_size),
+            albumentations.HorizontalFlip(p=0.5),
+            albumentations.JpegCompression(quality_lower=80, quality_upper=100),
+            albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=10, border_mode=0, p=0.7),
+            albumentations.MedianBlur(blur_limit=(3, 5), p=0.5),
+            albumentations.RandomBrightnessContrast(p=0.6),
+            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=5, p=0.7),
+            albumentations.Normalize()
+        ])
+    else:
+        transforms_train = albumentations.Compose([
+            albumentations.Resize(image_size, image_size),
+            albumentations.HorizontalFlip(p=0.5),
+            albumentations.JpegCompression(quality_lower=99, quality_upper=100),
+            albumentations.ShiftScaleRotate(shift_limit=0.3, scale_limit=0.3, rotate_limit=30, border_mode=0, p=0.7),
+            albumentations.MedianBlur(blur_limit=(3, 7), p=0.5),
+            albumentations.RandomBrightnessContrast(p=0.7),
+            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=5, p=0.7),
+            albumentations.Normalize()
+        ])
+
 
     transforms_val = albumentations.Compose([
         albumentations.Resize(image_size, image_size),
