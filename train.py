@@ -9,8 +9,8 @@ import argparse
 import albumentations
 import numpy as np
 import pandas as pd
-from tqdm import tqdm as tqdm
-from tqdm import tqdm_notebook
+from tqdm import tqdm_notebook as tqdm
+# from tqdm import tqdm_notebook
 from sklearn.metrics import cohen_kappa_score, confusion_matrix
 
 import torch
@@ -23,7 +23,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
-from util import f1_score, GradualWarmupSchedulerV2, row_wise_f1_score
+from util import GradualWarmupSchedulerV2, row_wise_f1_score
 from models import DenseCrossEntropy, Swish_module
 from models import ArcFaceLossAdaptiveMargin, Effnet, RexNet20, ResNest101
 
@@ -96,7 +96,7 @@ def generate_embeddings(model, test_loader):
     embeds = []
 
     with torch.no_grad():
-        for img in tqdm_notebook(test_loader): 
+        for img in tqdm(test_loader): 
             img = img.cuda()
             feat, _ = model(img)
 
@@ -168,6 +168,7 @@ def main(args):
 
     # get dataframe
     df, out_dim = get_df(args.groups)
+    print(df.head())
     print(f"out_dim = {out_dim}")
 
     # get adaptive margin
@@ -214,15 +215,14 @@ def main(args):
             model.load_state_dict(state_dict, strict=True)        
         del checkpoint, state_dict
         torch.cuda.empty_cache()
-        import gc
-        gc.collect()   
-    
+        gc.collect()
+
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
     scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=1, after_scheduler=scheduler_cosine)
 
     # train & valid loop
-    best_score = 0.
+    best_score = 0.0
     model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
@@ -230,24 +230,28 @@ def main(args):
         scheduler_warmup.step(epoch - 1)
 
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
-                                                  shuffle=True, drop_last=True)        
+                                                  shuffle=True, drop_last=True)
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
         val_loss, f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
-            f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f}, train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, f1score: {(f1score):.6f}.'
+            (
+                f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f},'
+                f' train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, f1score: {(f1score):.6f}.')
+
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
             appender.write(content + '\n')
 
-        print('best f1 score ({:.6f} --> {:.6f}). Saving model ...'.format(best_score, f1score))
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    }, model_file)            
-        best_score = f1score
+        if f1score > best_score:
+            print('best f1 score ({:.6f} --> {:.6f}). Saving model ...'.format(best_score, f1score))
+            torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        }, model_file)
+            best_score = f1score
 
         if epoch == args.stop_at_epoch:
             print(time.ctime(), 'Training Finished!')

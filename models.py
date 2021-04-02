@@ -85,7 +85,7 @@ class ArcFaceLossAdaptiveMargin(nn.modules.Module):
         self.crit = DenseCrossEntropy()
         self.s = s
         self.margins = margins
-            
+
     def forward(self, logits, labels, out_dim):
         ms = []
         ms = self.margins[labels.cpu().numpy()]
@@ -150,7 +150,7 @@ class RexNet20(nn.Module):
         logits_m = self.metric_classify(x)
 
         return F.normalize(x), logits_m
-        
+
 
 class ResNest101(nn.Module):
 

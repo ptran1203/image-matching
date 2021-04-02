@@ -2,25 +2,6 @@ from typing import Dict, Tuple, Any
 from warmup_scheduler import GradualWarmupScheduler
 import numpy as np
 
-def f1_score(
-        y_true: Dict[Any, Any],
-        y_pred: Dict[Any, Tuple[Any, float]]
-) -> float:
-    """
-    Compute Global Average Precision score (GAP)
-    Parameters
-    ----------
-    y_true : Dict[Any, Any]
-        Dictionary with query ids and true ids for query samples
-    y_pred : Dict[Any, Tuple[Any, float]]
-        Dictionary with query ids and predictions (predicted id, confidence
-        level)
-    Returns
-    -------
-    float
-        GAP score
-    """
-    return 1998
 
 def row_wise_f1_score(labels, preds):
     scores = []
@@ -29,6 +10,7 @@ def row_wise_f1_score(labels, preds):
         score = 2 * n / (len(label)+len(pred))
         scores.append(score)
     return scores, np.mean(scores)
+
 
 class GradualWarmupSchedulerV2(GradualWarmupScheduler):
     def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
