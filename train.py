@@ -143,20 +143,16 @@ def train_epoch(model, loader, optimizer, criterion):
 def val_epoch(model, valid_loader, criterion, valid_df):
 
     model.eval()
-    val_loss = []
     embeds = []
 
     with torch.no_grad():
         for (data, target) in tqdm(valid_loader):
             data, target = data.cuda(), target.cuda()
 
-            feat, logits_m = model(data)
+            feat, _ = model(data)
 
-            loss = criterion(logits_m, target)
-            val_loss.append(loss.detach().cpu().numpy())
             embeds.append(feat.detach().cpu().numpy())
 
-        val_loss = np.mean(val_loss)
         embeds = np.concatenate(embeds)
 
     preds = search_similiar_images(embeds, valid_df)
@@ -167,7 +163,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
         valid_df_clone['preds'] = preds
         valid_df_clone.to_csv('/content/valid.csv', index=False)
 
-    return val_loss, val_f1_score
+    return val_f1_score
 
 
 def main(args):
@@ -187,7 +183,7 @@ def main(args):
 
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]
-    df_valid = df[df['fold'] == args.fold].reset_index(drop=True)
+    df_valid = df[df['fold'] == args.fold]
 
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
     dataset_valid = ShoppeDataset(df_valid, 'val', transform=transforms_val)
@@ -237,12 +233,12 @@ def main(args):
                                                   shuffle=True, drop_last=True)
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
-        val_loss, f1score = val_epoch(model, valid_loader, criterion, df_valid)
+        f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
             (
                 f'Fold {args.fold}, Epoch {epoch}, lr: {optimizer.param_groups[0]["lr"]:.7f}, train loss: {np.mean(train_loss):.5f},'
-                f' train acc {np.mean(acc_list):.5f}, valid loss: {(val_loss):.5f}, f1score: {(f1score):.6f}.')
+                f' train acc {np.mean(acc_list):.5f}, f1score: {(f1score):.6f}.')
 
         print(content)
         with open(os.path.join(args.log_dir, f'{args.kernel_type}.txt'), 'a') as appender:
