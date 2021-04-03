@@ -62,7 +62,7 @@ def set_seed(seed=0):
     torch.backends.cudnn.deterministic = True
 
 
-def search_similiar_images(embeds, test_df):
+def search_similiar_images(embeds, test_df, thr=0.5):
     import cupy as cp
 
     embeds = cp.array(embeds)
@@ -85,7 +85,7 @@ def search_similiar_images(embeds, test_df):
         
         for k in range(b-a):
             # print(sorted(cts[k,], reverse=True))
-            IDX = cp.where(cts[k,]>0.5)[0]
+            IDX = cp.where(cts[k,] > thr)[0]
             o = test_df.iloc[cp.asnumpy(IDX)].posting_id.values
             preds.append(o)
 
@@ -265,7 +265,7 @@ def main(args):
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_final.pth'))
+    }, model_file)
 
 
 if __name__ == '__main__':
