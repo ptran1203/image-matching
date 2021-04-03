@@ -222,7 +222,7 @@ def main(args):
     scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=1, after_scheduler=scheduler_cosine)
 
     # train & valid loop
-    best_score = 0.0
+    best_score = -1
     model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
