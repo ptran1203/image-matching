@@ -1,6 +1,7 @@
 from typing import Dict, Tuple, Any
 from warmup_scheduler import GradualWarmupScheduler
 import numpy as np
+import pandas as pd
 
 def _convert_to_numpy(list_of_str):
     return np.array(list_of_str.split(' '))
@@ -8,11 +9,11 @@ def _convert_to_numpy(list_of_str):
 def row_wise_f1_score(labels, preds):
     scores = []
 
-    if isinstance(labels, str):
-        labels = _convert_to_numpy(labels)
+    if isinstance(labels, pd.Series):
+        labels = labels.map(_convert_to_numpy)
 
-    if isinstance(preds, str):
-        preds = _convert_to_numpy(preds)
+    if isinstance(preds, pd.Series):
+        preds = preds.map(_convert_to_numpy)
     
     for label, pred in zip(labels, preds):
         n = len(np.intersect1d(label, pred))
