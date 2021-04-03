@@ -158,7 +158,8 @@ def val_epoch(model, valid_loader, criterion, valid_df):
         print('val_f1_score', val_f1_score)
         valid_df_clone = valid_df.copy()
         valid_df_clone['preds'] = preds
-        valid_df_clone.to_csv('/content/valid.csv', index=False)
+        valid_df_clone[['target', 'preds']].to_csv('/content/valid.csv', index=False)
+        raise('Valid 0')
 
     return val_f1_score
 
