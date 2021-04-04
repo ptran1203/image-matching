@@ -233,12 +233,12 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
         dist_ap, relative_p_inds = torch.max(
             dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
         print("[OK GOOD ====]")
-        print(labels.shape, is_pos.shape)
+        print(labels, is_pos.shape)
         print(dist_mat[is_pos].shape)
         print(dist_mat.shape)
     except Exception as e:
         print("[ERR BAD ====]")
-        print(labels.shape, is_pos.shape)
+        print(labels, is_pos.shape)
         print(dist_mat[is_pos].shape)
         print(dist_mat.shape)
     # `dist_an` means distance(anchor, negative)
