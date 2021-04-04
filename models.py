@@ -236,6 +236,7 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
     print(is_pos)
     print(is_neg)
     print(dist_mat)
+    raise ValueError("1")
     dist_an, relative_n_inds = torch.min(
         dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
     # shape [N]
