@@ -231,11 +231,7 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
     # both `dist_ap` and `relative_p_inds` with shape [N, 1]
     try:
         dist_ap, relative_p_inds = torch.max(
-            dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
-        print("[OK GOOD ====]")
-        print(labels, is_pos.shape)
-        print(dist_mat[is_pos].shape)
-        print(dist_mat.shape)
+            dist_mat[is_pos][:N].contiguous().view(N, -1), 1, keepdim=True)
     except Exception as e:
         print("[ERR BAD ====]")
         print(labels, is_pos.shape)
