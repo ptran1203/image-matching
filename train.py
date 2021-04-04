@@ -24,7 +24,7 @@ from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
-from models import DenseCrossEntropy, Swish_module
+from models import DenseCrossEntropy, Swish_module, TripletLoss
 from models import ArcFaceLossAdaptiveMargin, Effnet, RexNet20, ResNest101
 
 
@@ -120,8 +120,8 @@ def train_epoch(model, loader, optimizer, criterion):
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
 
-        _, logits_m = model(data)
-        loss = criterion(logits_m, target)
+        feat, logits_m = model(data)
+        loss = criterion(logits_m, feat, target)
         loss.backward()
         optimizer.step()
 
@@ -194,10 +194,11 @@ def main(args):
     model = model.cuda()
 
     # loss func
-    def criterion(logits_m, target):
+    def criterion(logits_m, feat, target):
         arc = ArcFaceLossAdaptiveMargin(margins=margins, s=80)
         loss_m = arc(logits_m, target, out_dim)
-        return loss_m
+        triplet_loss = TripletLoss(0.3)(feat, target)
+        return loss_m + triplet_loss
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
