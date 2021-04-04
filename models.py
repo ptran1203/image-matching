@@ -233,12 +233,8 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
         dist_mat[is_pos][:N].contiguous().view(N, -1), 1, keepdim=True)
     # `dist_an` means distance(anchor, negative)
     # both `dist_an` and `relative_n_inds` with shape [N, 1]
-    print(is_pos)
-    print(is_neg)
-    print(dist_mat)
-    raise ValueError("1")
     dist_an, relative_n_inds = torch.min(
-        dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
+        dist_mat[is_neg][:N].contiguous().view(N, -1), 1, keepdim=True)
     # shape [N]
     dist_ap = dist_ap.squeeze(1)
     dist_an = dist_an.squeeze(1)
