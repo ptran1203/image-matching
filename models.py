@@ -241,6 +241,8 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
         print(labels, is_pos.shape)
         print(dist_mat[is_pos].shape)
         print(dist_mat.shape)
+        print(dist_mat)
+        print(is_pos)
     # `dist_an` means distance(anchor, negative)
     # both `dist_an` and `relative_n_inds` with shape [N, 1]
     dist_an, relative_n_inds = torch.min(
