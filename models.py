@@ -48,7 +48,6 @@ class CrossEntropyLossWithLabelSmoothing(nn.Module):
         loss = loss.sum(-1)
         return loss.mean()
 
-
 class DenseCrossEntropy(nn.Module):
     def forward(self, x, target):
         x = x.float()
@@ -77,8 +76,9 @@ class TripletLoss(object):
 
 
         global_feat = l2_norm(global_feat)
-
+        print('[INFO] global_feat', global_feat.shape)
         dist_mat = euclidean_dist(global_feat, global_feat)
+        print(dist_mat.shape)
         dist_ap, dist_an = hard_example_mining(dist_mat, labels)
 
         y = dist_an.new().resize_as_(dist_an).fill_(1)
