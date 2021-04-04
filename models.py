@@ -76,9 +76,7 @@ class TripletLoss(object):
 
 
         global_feat = l2_norm(global_feat)
-        print('[INFO] global_feat', global_feat.shape)
         dist_mat = euclidean_dist(global_feat, global_feat)
-        print(dist_mat.shape)
         dist_ap, dist_an = hard_example_mining(dist_mat, labels)
 
         y = dist_an.new().resize_as_(dist_an).fill_(1)
@@ -236,8 +234,9 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
             dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
     except Exception as e:
         print(N)
-        print(dist_mat[is_pos])
-        print(e)
+        print(is_pos)
+        print(dist_mat[is_pos].shape)
+        print(dist_mat.shape)
     # `dist_an` means distance(anchor, negative)
     # both `dist_an` and `relative_n_inds` with shape [N, 1]
     dist_an, relative_n_inds = torch.min(
