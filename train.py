@@ -25,7 +25,7 @@ from torch.backends import cudnn
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
 from models import Effnet, RexNet20, ResNest101, Swish_module
-from lossses import ArcFaceLossAdaptiveMargin, TripletLoss
+from losses import ArcFaceLossAdaptiveMargin, TripletLoss
 
 def parse_args():
 
