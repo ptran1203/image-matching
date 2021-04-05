@@ -24,9 +24,8 @@ from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
-from models import DenseCrossEntropy, Swish_module, TripletLoss
-from models import ArcFaceLossAdaptiveMargin, Effnet, RexNet20, ResNest101
-
+from models import Effnet, RexNet20, ResNest101, Swish_module
+from lossses import ArcFaceLossAdaptiveMargin, TripletLoss
 
 def parse_args():
 
@@ -48,6 +47,7 @@ def parse_args():
     parser.add_argument('--load-from', type=str, default='')
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
+    parser.add_argument('--warmup-epochs', type=int, default=1)
 
     args, _ = parser.parse_known_args()
     return args
@@ -217,7 +217,7 @@ def main(args):
 
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
-    scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=1, after_scheduler=scheduler_cosine)
+    scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=args.warmup_epochs, after_scheduler=scheduler_cosine)
 
     # train & valid loop
     best_score = -1

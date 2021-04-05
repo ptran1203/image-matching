@@ -22,6 +22,12 @@ def row_wise_f1_score(labels, preds):
     return scores, np.mean(scores)
 
 
+def l2_norm(input, axis=1):
+    norm = torch.norm(input,2, axis, True)
+    output = torch.div(input, norm)
+    return output
+
+
 class GradualWarmupSchedulerV2(GradualWarmupScheduler):
     def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
         super(GradualWarmupSchedulerV2, self).__init__(optimizer, multiplier, total_epoch, after_scheduler)
