@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+import math
 from util import l2_norm
 
 class CrossEntropyLossWithLabelSmoothing(nn.Module):
