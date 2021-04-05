@@ -62,6 +62,7 @@ class Effnet(nn.Module):
         self.enet.classifier = nn.Identity()
 
         self.feature_bn = nn.BatchNorm1d(feat_dim)
+        self.feature_bn.bias.requires_grad_(False)  # no shift
 
     def extract(self, x):
         return self.enet(x)

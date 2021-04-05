@@ -98,6 +98,7 @@ def euclidean_dist(x, y):
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
+
 def hard_example_mining(dist_mat, labels, return_inds=False):
 
     assert len(dist_mat.size()) == 2
