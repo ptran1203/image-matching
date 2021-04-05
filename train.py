@@ -24,7 +24,7 @@ from torch.backends import cudnn
 
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
-from models import Effnet, RexNet20, ResNest101, Swish_module
+from models import Effnet, RexNet20, ResNest101, EffnetV2
 from losses import ArcFaceLossAdaptiveMargin, TripletLoss
 
 def parse_args():
@@ -120,8 +120,8 @@ def train_epoch(model, loader, optimizer, criterion):
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
 
-        feat, logits_m = model(data)
-        loss = criterion(logits_m, feat, target)
+        global_feat, local_feat, logits_m = model(data)
+        loss = criterion(global_feat, local_feat, logits_m, target)
         loss.backward()
         optimizer.step()
 
@@ -147,9 +147,9 @@ def val_epoch(model, valid_loader, criterion, valid_df):
         for (data, target) in tqdm(valid_loader):
             data, target = data.cuda(), target.cuda()
 
-            feat, _ = model(data)
+            global_feat, local_feat, _ = model(data)
 
-            embeds.append(feat.detach().cpu().numpy())
+            embeds.append(global_feat.detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
     preds = search_similiar_images(embeds, valid_df)
@@ -194,11 +194,11 @@ def main(args):
     model = model.cuda()
 
     # loss func
-    def criterion(logits_m, feat, target):
-        arc = ArcFaceLossAdaptiveMargin(margins=margins, s=80)
-        loss_m = arc(logits_m, target, out_dim)
-        triplet_loss = TripletLoss(0.3)(feat, target)
-        return loss_m + triplet_loss
+    def criterion(global_feat, local_feat, logits, target):
+        loss_m = ArcFaceLossAdaptiveMargin(margins=margins, s=30)(logits, target, out_dim)
+        triplet_loss_global = TripletLoss(0.3)(global_feat, target)
+        triplet_loss_local = TripletLoss(0.3)(local_feat, target)
+        return loss_m + triplet_loss_global + triplet_loss_local
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
@@ -274,7 +274,7 @@ if __name__ == '__main__':
     elif args.enet_type == 'rex20':
         ModelClass = RexNet20
     else:
-        ModelClass = Effnet
+        ModelClass = EffnetV2
 
     set_seed(0)
     main(args)
