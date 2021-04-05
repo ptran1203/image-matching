@@ -148,8 +148,9 @@ def val_epoch(model, valid_loader, criterion, valid_df):
             data, target = data.cuda(), target.cuda()
 
             global_feat, local_feat, _ = model(data)
-
-            embeds.append(global_feat.detach().cpu().numpy())
+            global_feat = global_feat.detach().cpu().numpy()
+            local_feat = local_feat.detach().cpu().numpy()
+            embeds.append(torch.cat([global_feat, local_feat]))
 
     embeds = np.concatenate(embeds)
     preds = search_similiar_images(embeds, valid_df)
