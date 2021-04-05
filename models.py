@@ -128,7 +128,7 @@ class EffnetV2(nn.Module):
         # local feat
         local_feat = torch.mean(x, [2, 3], keepdim=True)
         local_feat = self.local_bn(self.local_conv(local_feat))
-        local_feat = local_feat.squeeze(-1).permute(0, 2, 1)
+        local_feat = local_feat.squeeze(-1).squeeze(-1)
         local_feat = l2_norm(local_feat, axis=-1)
         logits_m = self.arc(local_feat)
 
