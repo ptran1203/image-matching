@@ -148,7 +148,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
             data, target = data.cuda(), target.cuda()
 
             global_feat, local_feat, _ = model(data)
-            embeds.append(torch.cat([global_feat, local_feat]).detach().cpu().numpy())
+            embeds.append(torch.stack([global_feat, local_feat]).detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
     preds = search_similiar_images(embeds, valid_df)
@@ -229,7 +229,7 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
                                                   shuffle=True, drop_last=True)
 
-        train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
+        # train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
         f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
