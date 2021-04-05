@@ -229,7 +229,7 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
                                                   shuffle=True, drop_last=True)
 
-        # train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
+        train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
         f1score = val_epoch(model, valid_loader, criterion, df_valid)
 
         content = time.ctime() + ' ' + \
