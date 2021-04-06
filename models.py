@@ -118,7 +118,7 @@ class EffnetV2(nn.Module):
 
         global_feat = F.adaptive_avg_pool2d(x, 1)
         # global_feat = F.avg_pool2d(x, x.size()[2:])
-        # global_feat = global_feat.view(global_feat.size()[0], -1)
+        global_feat = global_feat.view(global_feat.size()[0], -1)
         global_feat = F.dropout(global_feat, p=0.2)
         global_feat = self.bottleneck_g(global_feat)
         # global_feat = l2_norm(global_feat)
