@@ -148,7 +148,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
             data, target = data.cuda(), target.cuda()
 
             global_feat, local_feat, _ = model(data)
-
+            # embeds.append(torch.cat([global_feat, local_feat], 1).detach().cpu().numpy())
             embeds.append(global_feat.detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
