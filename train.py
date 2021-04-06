@@ -120,8 +120,8 @@ def train_epoch(model, loader, optimizer, criterion):
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
 
-        global_feat, local_feat, logits_m = model(data)
-        loss = criterion(global_feat, local_feat, logits_m, target)
+        feat, logits_m = model(data)
+        loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()
 
@@ -147,9 +147,9 @@ def val_epoch(model, valid_loader, criterion, valid_df):
         for (data, target) in tqdm(valid_loader):
             data, target = data.cuda(), target.cuda()
 
-            global_feat, local_feat, _ = model(data)
+            feat, _ = model(data)
             # embeds.append(torch.cat([global_feat, local_feat], 1).detach().cpu().numpy())
-            embeds.append(global_feat.detach().cpu().numpy())
+            embeds.append(feat.detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
     preds = search_similiar_images(embeds, valid_df)
@@ -175,6 +175,8 @@ def main(args):
     tmp = np.sqrt(1 / np.sqrt(df['label_group'].value_counts().sort_index().values))
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
 
+    print("Adaptive margin", margins)
+
     # get augmentations
     transforms_train, transforms_val = get_transforms(args.image_size, args.stage)
 
@@ -194,11 +196,11 @@ def main(args):
     model = model.cuda()
 
     # loss func
-    def criterion(global_feat, local_feat, logits, target):
+    def criterion(feat, logits, target):
         loss_m = ArcFaceLossAdaptiveMargin(margins=margins, s=30)(logits, target, out_dim)
-        triplet_loss_global = TripletLoss(0.3)(global_feat, target)
-        triplet_loss_local = TripletLoss(0.3)(local_feat, target)
-        return loss_m + triplet_loss_global + triplet_loss_local
+        triplet_loss = TripletLoss(0.3)(feat, target)
+        # triplet_loss_local = TripletLoss(0.3)(feat, target)
+        return loss_m + triplet_loss
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
