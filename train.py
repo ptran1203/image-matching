@@ -25,7 +25,13 @@ from torch.backends import cudnn
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
 from models import Effnet, RexNet20, ResNest101, EffnetV2
-from losses import ArcFaceLossAdaptiveMargin, TripletLoss
+from losses import ArcFaceLossAdaptiveMargin
+from losses import TripletLoss
+from losses import ArcMarginCrossEntropy
+from losses import CosineMarginCrossEntropy
+from losses import encode_config, loss_from_config
+
+default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0)
 
 def parse_args():
 
@@ -48,6 +54,7 @@ def parse_args():
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
     parser.add_argument('--warmup-epochs', type=int, default=1)
+    parser.add_argument('--loss-config', type=str, default=default_loss_config)
 
     args, _ = parser.parse_known_args()
     return args
@@ -191,8 +198,9 @@ def main(args):
     model = model.cuda()
 
     # loss func
+    LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins)
     def criterion(feat, logits, target):
-        loss_m = ArcFaceLossAdaptiveMargin(margins=margins, s=30)(logits, target, out_dim)
+        loss_m = LossFunction(logits, target, out_dim)
         triplet_loss = TripletLoss(0.3)(feat, target)
         # triplet_loss_local = TripletLoss(0.3)(feat, target)
         return loss_m + triplet_loss

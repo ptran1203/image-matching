@@ -4,6 +4,40 @@ import torch.nn.functional as F
 import numpy as np
 import math
 from util import l2_norm
+import json
+
+class DictToObject(object):
+    def __init__(self, d):
+        for a, b in d.items():
+            if isinstance(b, (list, tuple)):
+               setattr(self, a, [obj(x) if isinstance(x, dict) else x for x in b])
+            else:
+               setattr(self, a, obj(b) if isinstance(b, dict) else b)
+
+def encode_config(loss_type, margin, scale, label_smoothing):
+    return json.dumps(dict(
+        loss_type=loss_type,
+        margin=margin,
+        scale=scale,
+        label_smoothing=label_smoothing,
+    ))
+
+def decode_config(string):
+    config = json.loads(string)
+    return DictToObject(config)
+
+def loss_from_config(config, adaptive_margins):
+    config = decode_config(config)
+
+    all_ = ['arc', 'aarc', 'cos']
+    assert config.loss_type in all_
+
+    if config.loss_type == 'arc':
+        return ArcMarginCrossEntropy(margin=config.margin, scale=config.scale, label_smoothing=config.label_smoothing)
+    elif config.loss_type == 'aarc':
+        return ArcFaceLossAdaptiveMargin(margins=adaptive_margins, scale=config.scale, label_smoothing=config.label_smoothing)
+    elif config.loss_type == 'cos':
+        return CosineMarginCrossEntropy(margin=config.margin, scale=config.scale, label_smoothing=config.label_smoothing)
 
 class CrossEntropyLossWithLabelSmoothing(nn.Module):
     def __init__(self, n_dim, ls_=0.9):
@@ -21,6 +55,30 @@ class CrossEntropyLossWithLabelSmoothing(nn.Module):
         loss = loss.sum(-1)
         return loss.mean()
 
+
+class LabelSmoothingLoss(nn.Module):
+    """
+    https://github.com/pytorch/pytorch/issues/7455#issuecomment-513062631
+    """
+
+    def __init__(self, classes, smoothing=0.0, dim=-1):
+        super(LabelSmoothingLoss, self).__init__()
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.cls = classes
+        self.dim = dim
+
+    def forward(self, pred, target):
+        pred = pred.log_softmax(dim=self.dim)
+
+        with torch.no_grad():
+            # true_dist = pred.data.clone()
+            true_dist = torch.zeros_like(pred)
+            true_dist.fill_(self.smoothing / (self.cls - 1))
+            true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
+
+        return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
+
 class DenseCrossEntropy(nn.Module):
     def forward(self, x, target):
         x = x.float()
@@ -33,10 +91,10 @@ class DenseCrossEntropy(nn.Module):
 
 
 class ArcFaceLossAdaptiveMargin(nn.modules.Module):
-    def __init__(self, margins, s=30.0):
+    def __init__(self, margins, scale=30.0, label_smoothing=0.0):
         super().__init__()
         self.crit = DenseCrossEntropy()
-        self.s = s
+        self.s = scale
         self.margins = margins
 
     def forward(self, logits, labels, out_dim):
@@ -56,6 +114,53 @@ class ArcFaceLossAdaptiveMargin(nn.modules.Module):
         output *= self.s
         loss = self.crit(output, labels)
         return loss
+
+
+class CosineMarginCrossEntropy(nn.Module):
+
+    def __init__(self, margin=0.60, scale=30.0, label_smoothing=0.0):
+        super(CosineMarginCrossEntropy, self).__init__()
+        self.m = margin
+        self.s = scale
+        self.ce = _getce(label_smoothing)
+
+    def forward(self, logits, labels):
+        one_hot = torch.zeros_like(logits)
+        one_hot.scatter_(1, labels.view(-1, 1), 1.0)
+        # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
+        output = self.s * (logits - one_hot * self.m)
+        
+        loss = self.ce(output, labels)
+        return loss
+
+
+class ArcMarginCrossEntropy(nn.Module):
+
+    def __init__(self, margin=0.50, scale=30.0, m_cos=0.3, label_smoothing=0.0):
+        super(ArcMarginCrossEntropy, self).__init__()
+        self.m = m
+        self.m_cos = m_cos
+        self.s = s
+        self.ce = _getce(label_smoothing)
+        
+        self.cos_m = math.cos(m)
+        self.sin_m = math.sin(m)
+        self.th = math.cos(math.pi - m)
+        self.mm = math.sin(math.pi - m) * m
+        
+
+    def forward(self, cosine, target):
+        
+        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        phi = cosine * self.cos_m - sine * self.sin_m
+        phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+        # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
+        one_hot = torch.zeros(cosine.size(), device='cuda')
+        one_hot.scatter_(1, target.view(-1, 1).long(), 1)
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine) 
+        output *= self.s
+        loss = self.ce(output, target)
+        return loss  
 
 
 class TripletLoss(object):
@@ -137,3 +242,7 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
         return dist_ap, dist_an, p_inds, n_inds
 
     return dist_ap, dist_an
+
+
+def _getce(n_dim, label_smoothing):
+    return nn.CrossEntropyLoss() if not label_smoothing else LabelSmoothingLoss(classes=11014,smoothing=label_smoothing)
