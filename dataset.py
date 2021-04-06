@@ -105,6 +105,9 @@ def get_transforms(image_size, stage=1, norm=True):
     if norm:
         transforms_train.append(A.Normalize())
         transforms_val.append(A.Normalize())
+    else:
+        transforms_train.append(A.Normalize(mean=0, std=1))
+        transforms_val.append(A.Normalize(mean=0, std=1))
 
     return A.Compose(transforms_train), A.Compose(transforms_val)
 
