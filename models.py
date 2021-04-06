@@ -108,9 +108,7 @@ class EffnetV2(nn.Module):
         self.swish = Swish_module()
         self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
 
-        self.local_conv = nn.Conv2d(planes, feat_dim, 1)
-        self.local_bn = nn.BatchNorm2d(feat_dim)
-        self.local_bn.bias.requires_grad_(False)  # no shift
+        self.to_feat = nn.Linear(planes, feat_dim)
         self.bottleneck_g = nn.BatchNorm1d(planes)
         self.bottleneck_g.bias.requires_grad_(False)  # no shift
 
@@ -125,14 +123,11 @@ class EffnetV2(nn.Module):
         global_feat = self.bottleneck_g(global_feat)
         global_feat = l2_norm(global_feat)
 
-        # local feat
-        local_feat = torch.mean(x, [2, 3], keepdim=True)
-        local_feat = self.local_bn(self.local_conv(local_feat))
-        local_feat = local_feat.squeeze(-1).squeeze(-1)
-        local_feat = l2_norm(local_feat, axis=-1)
-        logits_m = self.arc(local_feat)
+        feat = self.to_feat(global_feat)
 
-        return global_feat, local_feat, logits_m
+        logits_m = self.arc(feat)
+
+        return feat, logits_m
 
 
 class RexNet20(nn.Module):
