@@ -22,14 +22,14 @@ def encode_config(loss_type, margin, scale, label_smoothing, triplet):
 def decode_config(string):
     config = {}
     for pair in string.split(","):
-        for k, v in pair.split("="):
-            k = k.strip() 
-            v = v.strip()
-            if k == 'triplet':
-                v = v == 'True'
-            elif k != 'loss_type':
-                v = float(v)
-            config[k] = v
+        k, v = pair.split("=")
+        k = k.strip() 
+        v = v.strip()
+        if k == 'triplet':
+            v = v == 'True'
+        elif k != 'loss_type':
+            v = float(v)
+        config[k] = v
 
     return DictToObject(config)
 
