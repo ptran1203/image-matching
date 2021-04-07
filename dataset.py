@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 import pandas as pd
-import albumentations
+import albumentations as A
 import torch
 from torch.utils.data import Dataset
 
@@ -36,51 +36,80 @@ class ShoppeDataset(Dataset):
             return torch.tensor(image), torch.tensor(row.label_group)
 
 
-def get_transforms(image_size, stage=1):
+def get_transforms(image_size, stage=1, norm=True):
     if stage == 1:
-        max_size_cutout = int(image_size * 0.1)
-        transforms_train = albumentations.Compose([
-            albumentations.Resize(image_size, image_size),
-            albumentations.HorizontalFlip(p=0.5),
-            albumentations.JpegCompression(quality_lower=99, quality_upper=100),
-            albumentations.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=10, border_mode=0, p=0.3),
-            albumentations.MedianBlur(blur_limit=(3, 5), p=0.3),
-            albumentations.RandomBrightnessContrast(p=0.3),
-            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=3, p=0.3),
-            albumentations.Normalize()
-        ])
-    elif stage == 2:
-        max_size_cutout = int(image_size * 0.15)
-        transforms_train = albumentations.Compose([
-            albumentations.Resize(image_size, image_size),
-            albumentations.HorizontalFlip(p=0.5),
-            albumentations.JpegCompression(quality_lower=80, quality_upper=100),
-            albumentations.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=20, border_mode=0, p=0.5),
-            albumentations.MedianBlur(blur_limit=(3, 5), p=0.5),
-            albumentations.RandomBrightnessContrast(p=0.6),
-            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=5, p=0.7),
-            albumentations.Normalize()
-        ])
-    else:
         max_size_cutout = int(image_size * 0.2)
-        transforms_train = albumentations.Compose([
-            albumentations.Resize(image_size, image_size),
-            albumentations.HorizontalFlip(p=0.5),
-            albumentations.JpegCompression(quality_lower=70, quality_upper=100),
-            albumentations.ShiftScaleRotate(shift_limit=0.3, scale_limit=0.3, rotate_limit=30, border_mode=0, p=0.7),
-            albumentations.MedianBlur(blur_limit=(3, 7), p=0.5),
-            albumentations.RandomBrightnessContrast(p=0.7),
-            albumentations.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=3, p=0.7),
-            albumentations.Normalize()
-        ])
+        transforms_train = [
+            A.Resize(image_size, image_size),
+            A.HorizontalFlip(p=0.5),
+            A.Transpose(p=0.5),
+            A.JpegCompression(quality_lower=80, quality_upper=100),
+            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.3),
+            A.OneOf([
+                A.MedianBlur(blur_limit=(3, 7)),
+                A.MotionBlur(blur_limit=(3, 7)),
+                A.GaussNoise(),
+            ], p=0.3),
+            A.OneOf([
+                A.GridDistortion(),
+                A.OpticalDistortion(),
+            ], p=0.3),
+            A.RandomBrightnessContrast(p=0.3),
+            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.3),
+        ]
+    elif stage == 2:
+        max_size_cutout = int(image_size * 0.2)
+        transforms_train = [
+            A.Resize(image_size, image_size),
+            A.HorizontalFlip(p=0.5),
+            A.Transpose(p=0.5),
+            A.JpegCompression(quality_lower=80, quality_upper=100),
+            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.5),
+            A.OneOf([
+                A.MedianBlur(blur_limit=(3, 7)),
+                A.MotionBlur(blur_limit=(3, 7)),
+                A.GaussNoise(),
+            ], p=0.5),
+            A.OneOf([
+                A.GridDistortion(),
+                A.OpticalDistortion(),
+            ], p=0.5),
+            A.RandomBrightnessContrast(p=0.5),
+            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.5),
+        ]
+    else:
+        max_size_cutout = int(image_size * 0.25)
+        transforms_train = [
+            A.Resize(image_size, image_size),
+            A.HorizontalFlip(p=0.5),
+            A.Transpose(p=0.5),
+            A.JpegCompression(quality_lower=80, quality_upper=100),
+            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.7),
+            A.OneOf([
+                A.MedianBlur(blur_limit=(3, 7)),
+                A.MotionBlur(blur_limit=(3, 7)),
+                A.GaussNoise(),
+            ], p=0.7),
+            A.OneOf([
+                A.GridDistortion(),
+                A.OpticalDistortion(),
+            ], p=0.7),
+            A.RandomBrightnessContrast(p=0.7),
+            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.7),
+        ]
 
+    transforms_val = [
+        A.Resize(image_size, image_size),
+    ]
 
-    transforms_val = albumentations.Compose([
-        albumentations.Resize(image_size, image_size),
-        albumentations.Normalize()
-    ])
+    if norm:
+        transforms_train.append(A.Normalize())
+        transforms_val.append(A.Normalize())
+    else:
+        transforms_train.append(A.Normalize(mean=0, std=1))
+        transforms_val.append(A.Normalize(mean=0, std=1))
 
-    return transforms_train, transforms_val
+    return A.Compose(transforms_train), A.Compose(transforms_val)
 
 
 def get_df(groups=0):
