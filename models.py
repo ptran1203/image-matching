@@ -118,8 +118,8 @@ class EffnetV2(nn.Module):
     def forward(self, x):
         x = self.enet(x)
 
-        global_feat = F.adaptive_avg_pool2d(x, 1)
-        # global_feat = self.gem(x)
+        # global_feat = F.adaptive_avg_pool2d(x, 1)
+        global_feat = self.gem(x)
         # global_feat = F.avg_pool2d(x, x.size()[2:])
         global_feat = global_feat.view(global_feat.size()[0], -1)
         global_feat = F.dropout(global_feat, p=0.2)
