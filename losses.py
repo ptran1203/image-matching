@@ -24,7 +24,12 @@ def encode_config(loss_type, margin, scale, label_smoothing, triplet):
     ))
 
 def decode_config(string):
-    config = json.loads(string)
+    try:
+        config = json.loads(string)
+    except Exception as e:
+        print(f"\n=======\n{string}\n======\n")
+        print(e)
+
     return DictToObject(config)
 
 def loss_from_config(config, adaptive_margins):
