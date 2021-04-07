@@ -28,7 +28,7 @@ def decode_config(string):
         config = json.loads(string)
     except Exception as e:
         print(f"\n=======\n{string}\n======\n")
-        print(e)
+        raise(e)
 
     return DictToObject(config)
 
