@@ -112,11 +112,14 @@ class EffnetV2(nn.Module):
         self.bottleneck_g = nn.BatchNorm1d(planes)
         self.bottleneck_g.bias.requires_grad_(False)  # no shift
 
+        self.gem = GeM()
+
 
     def forward(self, x):
         x = self.enet(x)
 
         global_feat = F.adaptive_avg_pool2d(x, 1)
+        # global_feat = self.gem(x)
         # global_feat = F.avg_pool2d(x, x.size()[2:])
         global_feat = global_feat.view(global_feat.size()[0], -1)
         global_feat = F.dropout(global_feat, p=0.2)
@@ -124,10 +127,9 @@ class EffnetV2(nn.Module):
         # global_feat = l2_norm(global_feat, axis=-1)
 
         feat = self.to_feat(global_feat)
-
+        logits_m = self.arc(feat)
         feat = l2_norm(feat, axis=-1)
 
-        logits_m = self.arc(feat)
 
         return feat, logits_m
 
