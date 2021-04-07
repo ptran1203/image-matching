@@ -14,23 +14,25 @@ class DictToObject(object):
             else:
                setattr(self, a, obj(b) if isinstance(b, dict) else b)
 
+
 def encode_config(loss_type, margin, scale, label_smoothing, triplet):
-    return json.dumps(dict(
-        loss_type=loss_type,
-        margin=margin,
-        scale=scale,
-        label_smoothing=label_smoothing,
-        triplet=triplet,
-    ))
+    return f"loss_type={loss_type}, margin={margin}, scale={scale}, label_smoothing={label_smoothing}, triplet={triplet}"
+
 
 def decode_config(string):
-    try:
-        config = json.loads(string)
-    except Exception as e:
-        print(f"\n=======\n{string}\n======\n")
-        raise(e)
+    config = {}
+    for pair in string.split(","):
+        for k, v in pair.split("="):
+            k = k.strip() 
+            v = v.strip()
+            if k == 'triplet':
+                v = v == 'True'
+            elif k != 'loss_type':
+                v = float(v)
+            config[k] = v
 
     return DictToObject(config)
+
 
 def loss_from_config(config, adaptive_margins):
     config = decode_config(config)
@@ -44,6 +46,7 @@ def loss_from_config(config, adaptive_margins):
         return ArcFaceLossAdaptiveMargin(margins=adaptive_margins, scale=config.scale, label_smoothing=config.label_smoothing)
     elif config.loss_type == 'cos':
         return CosineMarginCrossEntropy(margin=config.margin, scale=config.scale, label_smoothing=config.label_smoothing)
+
 
 class CrossEntropyLossWithLabelSmoothing(nn.Module):
     def __init__(self, n_dim, ls_=0.9):
@@ -84,6 +87,7 @@ class LabelSmoothingLoss(nn.Module):
             true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
 
         return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
+
 
 class DenseCrossEntropy(nn.Module):
     def forward(self, x, target):
