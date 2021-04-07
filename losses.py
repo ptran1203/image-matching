@@ -14,12 +14,13 @@ class DictToObject(object):
             else:
                setattr(self, a, obj(b) if isinstance(b, dict) else b)
 
-def encode_config(loss_type, margin, scale, label_smoothing):
+def encode_config(loss_type, margin, scale, label_smoothing, triplet):
     return json.dumps(dict(
         loss_type=loss_type,
         margin=margin,
         scale=scale,
         label_smoothing=label_smoothing,
+        triplet=triplet,
     ))
 
 def decode_config(string):

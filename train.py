@@ -31,7 +31,7 @@ from losses import ArcMarginCrossEntropy
 from losses import CosineMarginCrossEntropy
 from losses import encode_config, loss_from_config
 
-default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0)
+default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0, triplet=True)
 
 def parse_args():
 
@@ -199,15 +199,19 @@ def main(args):
 
     # loss func
     LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins)
-    def criterion(feat, logits, target):
-        loss_m = LossFunction(logits, target, out_dim)
-        triplet_loss = TripletLoss(0.3)(feat, target)
-        # triplet_loss_local = TripletLoss(0.3)(feat, target)
-        return loss_m + triplet_loss
+    if args.loss_config.triplet:
+        def criterion(feat, logits, target):
+            loss_m = LossFunction(logits, target, out_dim)
+            triplet_loss = TripletLoss(0.3)(feat, target)
+
+            return loss_m + triplet_loss
+    else:
+        def criterion(feat, logits, target):
+            loss_m = LossFunction(logits, target, out_dim)
+            return loss_m
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
-
 
     # load pretrained
     if args.load_from and args.load_from != 'none':
