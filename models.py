@@ -4,15 +4,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import geffnet
+import gc
 from torch.nn.parameter import Parameter
 from torch.autograd import Variable
 from torch.hub import load_state_dict_from_url
 from torchvision.models.resnet import ResNet, Bottleneck
-import geffnet
-import gc
 from rexnetv1 import ReXNetV1
 from resnest.torch import resnest101
 from util import l2_norm
+from tqdm import tqdm
 
 class Swish(torch.autograd.Function):
 
@@ -253,11 +254,11 @@ class EnsembleModels(nn.Module):
         return results
 
 
-def inference(model, test_loader):
+def inference(model, test_loader, tqdm=tqdm):
     embeds = []
 
     with torch.no_grad():
-        for img in tqdm_notebook(test_loader): 
+        for img in tqdm(test_loader): 
             img = img.cuda()
             feat, _ = model(img)
 
