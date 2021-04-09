@@ -229,7 +229,7 @@ class EnsembleModels(nn.Module):
         if not isinstance(self.folds, list):
             self.folds = [self.folds] * max_len
 
-        if not isinstance(stages, list):
+        if not isinstance(self.stages, list):
             self.stages = [self.stages] * max_len
 
         models = []
