@@ -250,3 +250,19 @@ class EnsembleModels(nn.Module):
             return torch.mean(results)
 
         return results
+
+
+def inference(model, test_loader):
+    embeds = []
+
+    with torch.no_grad():
+        for img in tqdm_notebook(test_loader): 
+            img = img.cuda()
+            feat, _ = model(img)
+
+            image_embeddings = feat.detach().cpu().numpy()
+            embeds.append(image_embeddings)
+        
+    _ = gc.collect()
+    image_embeddings = np.concatenate(embeds)
+    return image_embeddings
