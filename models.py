@@ -105,12 +105,12 @@ class EffnetV2(nn.Module):
         self.enet = geffnet.create_model(enet_type,
             pretrained=pretrained, as_sequential=True)[:-4]
         # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
-        self.swish = Swish_module()
+        # self.swish = Swish_module()
         self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
 
         self.to_feat = nn.Linear(planes, feat_dim)
-        self.bottleneck_g = nn.BatchNorm1d(planes)
-        self.bottleneck_g.bias.requires_grad_(False)  # no shift
+        self.bn = nn.BatchNorm1d(feat_dim)
+        self.bn.bias.requires_grad_(False)  # no shift
 
         self.gem = GeM()
 
@@ -122,14 +122,12 @@ class EffnetV2(nn.Module):
         global_feat = self.gem(x)
         # global_feat = F.avg_pool2d(x, x.size()[2:])
         global_feat = global_feat.view(global_feat.size()[0], -1)
-        global_feat = F.dropout(global_feat, p=0.2)
-        # global_feat = self.bottleneck_g(global_feat)
-        # global_feat = l2_norm(global_feat, axis=-1)
+        # global_feat = F.dropout(global_feat, p=0.2)
 
         feat = self.to_feat(global_feat)
+        feat = self.bn(feat)
         logits_m = self.arc(feat)
         feat = l2_norm(feat, axis=-1)
-
 
         return feat, logits_m
 

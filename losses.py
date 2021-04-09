@@ -170,7 +170,7 @@ class ArcMarginCrossEntropy(nn.Module):
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine) 
         output *= self.s
         loss = self.ce(output, target)
-        return loss  
+        return loss
 
 
 class TripletLoss(object):
