@@ -193,3 +193,60 @@ class GeM(nn.Module):
         
     def __repr__(self):
         return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(self.eps) + ')'
+
+
+class EnsembleModels(nn.Module):
+    def __init__(self, backbones, folds, stages, weight_dir, out_dim=11014, reduction='mean'):
+        super(EnsembleModels, self).__init__()
+
+        self.backbones = backbones
+        self.folds = folds
+        self.stages = stages
+        self.weight_dir = weight_dir
+        self.out_dim = out_dim
+        self.reduction = reduction  # mean or concat
+        self.models = self.load_models()
+
+    def load_effnets(self, backbone, fold, stage):
+        weight_path = os.path.join(self.weight_dir, f'{backbone}_fold{fold}_stage{stage}.pth')
+        if not os.path.exists(weight_path):
+            raise FileNotFoundError(f'{weight_path} does not exist')
+
+        model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False)
+        model = model.cuda()
+        checkpoint = torch.load(,
+                                            map_location='cuda:0')
+        state_dict = checkpoint['model_state_dict']
+        state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}
+        return model
+
+    def load_models(self):
+        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages] if isinstance(p, list) else 1])
+
+        if not isinstance(self.backbones, list):
+            self.backbones = [self.backbones] * max_len
+
+        if not isinstance(self.folds, list):
+            self.folds = [self.folds] * max_len
+
+        if not isinstance(stages, list):
+            self.stages = [self.stages] * max_len
+
+        models = []
+        for backbone, fold, stage in zip(self.backbones, self.folds, self.stages):
+            model = self.load_effnets(backbone, fold, stage)
+
+        return models
+
+    def forward(self, x):
+        results = []
+        for model in self.models:
+            pred = model(x)
+            results.append(pred)
+
+        if self.reduction == 'concat':
+            return torch.cat(results, dim=0)
+        elif self.reduction == 'mean':
+            return torch.mean(results)
+
+        return results
