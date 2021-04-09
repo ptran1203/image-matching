@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torch.hub import load_state_dict_from_url
 from torchvision.models.resnet import ResNet, Bottleneck
 import geffnet
+import gc
 from rexnetv1 import ReXNetV1
 from resnest.torch import resnest101
 from util import l2_norm
@@ -214,8 +215,7 @@ class EnsembleModels(nn.Module):
 
         model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False)
         model = model.cuda()
-        checkpoint = torch.load(,
-                                            map_location='cuda:0')
+        checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
         state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}
         return model
