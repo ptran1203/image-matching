@@ -220,6 +220,7 @@ class EnsembleModels(nn.Module):
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
         state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}
+        model.load_state_dict(state_dict, strict=True)
         return model
 
     def load_models(self):
