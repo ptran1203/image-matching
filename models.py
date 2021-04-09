@@ -246,6 +246,7 @@ class EnsembleModels(nn.Module):
             pred = model(x)
             results.append(pred)
 
+        results = torch.Tensor(results)
         if self.reduction == 'concat':
             return torch.cat(results, dim=0)
         elif self.reduction == 'mean':
