@@ -221,7 +221,7 @@ class EnsembleModels(nn.Module):
         return model
 
     def load_models(self):
-        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages] if isinstance(p, list) else 1])
+        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages] if isinstance(p, list)] + [1])
 
         if not isinstance(self.backbones, list):
             self.backbones = [self.backbones] * max_len
