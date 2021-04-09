@@ -236,17 +236,23 @@ class EnsembleModels(nn.Module):
 
         models = []
         for backbone, fold, stage in zip(self.backbones, self.folds, self.stages):
+            print(f'Loading model {backbone} - fold {fold} - stage {stage}')
             model = self.load_effnets(backbone, fold, stage)
+            models.append(model)
 
         return models
 
     def forward(self, x):
         results = []
         for model in self.models:
-            pred = model(x)
-            results.append(pred)
+            feat, _ = model(x)
+            results.append(feat)
 
-        results = torch.Tensor(results)
+        if len(results) == 1:
+            return results[0]
+
+        results = torch.stack(results)
+
         if self.reduction == 'concat':
             return torch.cat(results, dim=0)
         elif self.reduction == 'mean':
@@ -257,11 +263,13 @@ class EnsembleModels(nn.Module):
 
 def inference(model, test_loader, tqdm=tqdm):
     embeds = []
-
+    is_ensemble = isinstance(model, EnsembleModels)
     with torch.no_grad():
-        for img in tqdm(test_loader): 
+        for img in tqdm(test_loader):
             img = img.cuda()
-            feat, _ = model(img)
+            feat = model(img)
+            if not is_ensemble:
+                feat = feat[1]
 
             image_embeddings = feat.detach().cpu().numpy()
             embeds.append(image_embeddings)
