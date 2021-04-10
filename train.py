@@ -124,12 +124,15 @@ def train_epoch(model, loader, optimizer, criterion):
     accs = []
 
     bar = tqdm(loader)
-    for (data, target) in bar:
+    for image, input_ids, attention_mask, target in bar:
 
-        data, target = data.cuda(), target.cuda()
+        image, input_ids, attention_mask, target = (
+            image.cuda(), input_ids.cuda(),
+            attention_mask.cuda(), target.cuda())
+
         optimizer.zero_grad()
 
-        feat, logits_m = model(data)
+        feat, logits_m = model(image, input_ids, attention_mask)
         loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()
