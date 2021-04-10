@@ -184,9 +184,6 @@ def get_criterion(args, out_dim, margins):
             def criterion(feat, logits, target):
                 return LossFunction(logits, target)
 
-
-        
-
     return criterion
 
 def main(args):

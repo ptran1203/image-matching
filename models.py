@@ -150,15 +150,15 @@ class EnsembleModels(nn.Module):
 
         return models
 
-    def forward(self, x):
+    def forward(self, img, input_ids, att_mask):
         results = []
         for model in self.models:
-            feat, _ = model(x)
+            feat, _ = model(img, input_ids, att_mask)
             results.append(feat)
 
         if len(results) == 1:
             return results[0]
-        
+
         if self.reduction == 'concat':
             return torch.cat(results, dim=-1)
         elif self.reduction == 'mean':
@@ -173,9 +173,9 @@ def inference(model, test_loader, tqdm=tqdm):
     if not is_ensemble:
         model.eval()
     with torch.no_grad():
-        for i, img in enumerate(tqdm(test_loader)):
-            img = img.cuda()
-            feat = model(img)
+        for i, (img, input_ids, att_mask) in enumerate(tqdm(test_loader)):
+            img, input_ids, att_mask = img.cuda(), input_ids.cuda(), att_mask.cuda()
+            feat = model(img, input_ids, att_mask)
             if not is_ensemble:
                 feat = feat[1]
 
