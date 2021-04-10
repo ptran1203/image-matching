@@ -41,7 +41,7 @@ class EffnetV2(nn.Module):
         elif loss_type == 'arc':
             self.arc = ArcModule(feat_dim, out_dim)
         elif loss_type == 'cos':
-            self.ảc = CosModule(feat_dim, out_dim)
+            self.arc = CosModule(feat_dim, out_dim)
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
