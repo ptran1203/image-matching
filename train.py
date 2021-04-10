@@ -238,7 +238,7 @@ def main(args):
     model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
-        print(time.ctime(), 'Epoch:', epoch)
+        print(time.ctime(), f'Epoch: {epoch}/{args.n_epochs}')
         scheduler_warmup.step(epoch - 1)
 
         train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
