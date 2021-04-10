@@ -134,12 +134,9 @@ class CosineMarginCrossEntropy(nn.Module):
         self.s = scale
         self.ce = _getce(label_smoothing)
 
-    def forward(self, logits, labels):
-        one_hot = torch.zeros_like(logits)
-        one_hot.scatter_(1, labels.view(-1, 1), 1.0)
-        # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
+    def forward(self, logits, labels, out_dim):
+        one_hot = F.one_hot(labels, out_dim).float()
         output = self.s * (logits - one_hot * self.m)
-        
         loss = self.ce(output, labels)
         return loss
 
@@ -159,14 +156,14 @@ class ArcMarginCrossEntropy(nn.Module):
         self.mm = math.sin(math.pi - margin) * margin
         
 
-    def forward(self, cosine, target):
+    def forward(self, cosine, target, out_dim):
         
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
         phi = cosine * self.cos_m - sine * self.sin_m
         phi = torch.where(cosine > self.th, phi, cosine - self.mm)
         # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
-        one_hot = torch.zeros(cosine.size(), device='cuda')
-        one_hot.scatter_(1, target.view(-1, 1).long(), 1)
+
+        one_hot = F.one_hot(target, out_dim).float()
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine) 
         output *= self.s
         loss = self.ce(output, target)
