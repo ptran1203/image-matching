@@ -8,20 +8,18 @@ import random
 import argparse
 import albumentations
 import numpy as np
+import cupy as cp
 import pandas as pd
-from tqdm import tqdm
-# from tqdm import tqdm_notebook
-from sklearn.metrics import cohen_kappa_score, confusion_matrix
-
+import torch.optim as optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tqdm import tqdm
+from sklearn.metrics import cohen_kappa_score, confusion_matrix
 from torch.utils.data import TensorDataset, DataLoader, Dataset
-import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
-
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
 from models import Effnet, RexNet20, ResNest101, EffnetV2
@@ -70,8 +68,6 @@ def set_seed(seed=0):
 
 
 def search_similiar_images(embeds, test_df, thr=0.5):
-    import cupy as cp
-
     embeds = cp.array(embeds)
 
     preds = []
@@ -154,12 +150,15 @@ def val_epoch(model, valid_loader, criterion, valid_df):
 
     model.eval()
     embeds = []
+    bar = tqdm(valid_loader)
 
     with torch.no_grad():
-        for (data, target) in tqdm(valid_loader):
-            data, target = data.cuda(), target.cuda()
+        for image, input_ids, attention_mask, target in bar:
+            image, input_ids, attention_mask, target = (
+                image.cuda(), input_ids.cuda(),
+                attention_mask.cuda(), target.cuda())
 
-            feat, _ = model(data)
+            feat, _ = model(image, input_ids, attention_mask)
             # embeds.append(torch.cat([global_feat, local_feat], 1).detach().cpu().numpy())
             embeds.append(feat.detach().cpu().numpy())
 
