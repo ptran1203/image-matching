@@ -40,13 +40,10 @@ def loss_from_config(config, adaptive_margins):
     all_ = ['arc', 'aarc', 'cos']
     assert config.loss_type in all_
 
-    if config.loss_type == 'arc':
-        return nn.CrossEntropyLoss()
-    elif config.loss_type == 'aarc':
+    if config.loss_type == 'aarc':
         return ArcFaceLossAdaptiveMargin(margins=adaptive_margins, scale=config.scale, label_smoothing=config.label_smoothing)
-    elif config.loss_type == 'cos':
-        return CosineMarginCrossEntropy(margin=config.margin, scale=config.scale, label_smoothing=config.label_smoothing)
-
+    
+    return nn.CrossEntropyLoss()
 
 class CrossEntropyLossWithLabelSmoothing(nn.Module):
     def __init__(self, n_dim, ls_=0.9):
