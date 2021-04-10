@@ -232,10 +232,10 @@ class ArcModule(nn.Module):
         self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
         nn.init.xavier_normal_(self.weight)
 
-        self.cos_m = math.cos(m)
-        self.sin_m = math.sin(m)
-        self.th = torch.tensor(math.cos(math.pi - m))
-        self.mm = torch.tensor(math.sin(math.pi - m) * m)
+        self.cos_m = math.cos(margin)
+        self.sin_m = math.sin(margin)
+        self.th = torch.tensor(math.cos(math.pi - margin))
+        self.mm = torch.tensor(math.sin(math.pi - margin) * margin)
 
     def forward(self, inputs, labels):
         cos_th = F.linear(inputs, F.normalize(self.weight))
