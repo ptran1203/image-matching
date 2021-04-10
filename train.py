@@ -22,7 +22,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
-from models import Effnet, RexNet20, ResNest101, EffnetV2
+from models import EffnetV2
 from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
 from losses import ArcMarginCrossEntropy
@@ -197,13 +197,14 @@ def main(args):
 
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
+    loss_config = decode_config(args.loss_config)
     # model
-    model = ModelClass(args.enet_type, out_dim=out_dim)
+    model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type)
     model = model.cuda()
 
     # loss func
     LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins)
-    if decode_config(args.loss_config).triplet:
+    if loss_config.triplet:
         def criterion(feat, logits, target):
             loss_m = LossFunction(logits, target, out_dim)
             triplet_loss = TripletLoss(0.3)(feat, target)
@@ -281,13 +282,5 @@ if __name__ == '__main__':
     print(args)
     os.makedirs(args.model_dir, exist_ok=True)
     os.makedirs(args.log_dir, exist_ok=True)
-
-    if args.enet_type == 'nest101':
-        ModelClass = ResNest101
-    elif args.enet_type == 'rex20':
-        ModelClass = RexNet20
-    else:
-        ModelClass = EffnetV2
-
     set_seed(0)
     main(args)

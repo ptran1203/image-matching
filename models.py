@@ -16,73 +16,9 @@ from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
 
-class Swish(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, i):
-        result = i * torch.sigmoid(i)
-        ctx.save_for_backward(i)
-        return result
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        i = ctx.saved_variables[0]
-        sigmoid_i = torch.sigmoid(i)
-        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
-
-
-class Swish_module(nn.Module):
-    def forward(self, x):
-        return Swish.apply(x)
-
-class ArcMarginProduct_subcenter(nn.Module):
-    def __init__(self, in_features, out_features, k=3):
-        super().__init__()
-        self.weight = nn.Parameter(torch.FloatTensor(out_features*k, in_features))
-        self.reset_parameters()
-        self.k = k
-        self.out_features = out_features
-        
-    def reset_parameters(self):
-        stdv = 1. / math.sqrt(self.weight.size(1))
-        self.weight.data.uniform_(-stdv, stdv)
-        
-    def forward(self, features):
-        cosine_all = F.linear(F.normalize(features), F.normalize(self.weight))
-        cosine_all = cosine_all.view(-1, self.out_features, self.k)
-        cosine, _ = torch.max(cosine_all, dim=2)
-        return cosine
-
-
-class Effnet(nn.Module):
-
-    def __init__(self, enet_type, out_dim, pretrained=True):
-        super(Effnet, self).__init__()
-        feat_dim = 512
-        self.enet = geffnet.create_model(enet_type.replace('-', '_'), pretrained=pretrained)
-        self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
-        self.swish = Swish_module()
-        self.metric_classify = ArcMarginProduct_subcenter(feat_dim, out_dim)
-        self.enet.classifier = nn.Identity()
-
-        self.feature_bn = nn.BatchNorm1d(feat_dim)
-        self.feature_bn.bias.requires_grad_(False)  # no shift
-
-    def extract(self, x):
-        return self.enet(x)
-
-    def forward(self, x):
-        x = self.extract(x)
-        x = self.swish(self.feat(x))
-        x = self.feature_bn(x)
-        logits_m = self.metric_classify(x)
-
-        return l2_norm(x, axis=-1), logits_m
-
-
 class EffnetV2(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True, bert=None):
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=None, loss_type='aarc'):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
@@ -99,7 +35,10 @@ class EffnetV2(nn.Module):
 
         # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
         # self.swish = Swish_module()
-        self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
+        if loss_type == 'aarc':
+            self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
+        elif loss_type == 'arc':
+            self.arc = ArcModule(feat_dim, out_dim)
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
@@ -118,9 +57,9 @@ class EffnetV2(nn.Module):
 
         feat = self.to_feat(global_feat)
         feat = self.bn(feat)
-        logits_m = self.arc(feat)
         feat = l2_norm(feat, axis=-1)
 
+        logits_m = self.arc(feat)
         return feat, logits_m
 
     @staticmethod
@@ -142,54 +81,6 @@ class EffnetV2(nn.Module):
         elif 'b7' in enet_type:
             return 2560
 
-
-class RexNet20(nn.Module):
-
-    def __init__(self, enet_type, out_dim, pretrained=True):
-        super(RexNet20, self).__init__()
-        self.enet = ReXNetV1(width_mult=2.0)
-        if pretrained:
-            pretrain_wts = "./rexnetv1_2.0x.pth"
-            sd = torch.load(pretrain_wts)
-            self.enet.load_state_dict(sd, strict=True)
-        
-        self.feat = nn.Linear(self.enet.output[1].in_channels, 512)
-        self.swish = Swish_module()
-        self.metric_classify = ArcMarginProduct_subcenter(512, out_dim)
-        self.enet.output = nn.Identity()
-
-    def extract(self, x):
-        return self.enet(x)
-
-    def forward(self, x):
-        x = self.extract(x)
-        x = self.swish(self.feat(x))
-        logits_m = self.metric_classify(x)
-
-        return l2_norm(x, axis=-1), logits_m
-
-
-class ResNest101(nn.Module):
-
-    def __init__(self, enet_type, out_dim, pretrained=True):
-        super(ResNest101, self).__init__()
-        self.enet = resnest101(pretrained=pretrained)
-        self.feat = nn.Linear(self.enet.fc.in_features, 512)
-        self.swish = Swish_module()
-        self.metric_classify = ArcMarginProduct_subcenter(512, out_dim)
-        self.enet.fc = nn.Identity()
-        
-    def extract(self, x):
-        return self.enet(x)
-
-    def forward(self, x):
-        x = self.extract(x)
-        x = self.swish(self.feat(x))
-        logits_m = self.metric_classify(x)
-
-        return l2_norm(x, axis=-1), logits_m
-
-
 class GeM(nn.Module):
     def __init__(self, p=3, eps=1e-6):
         super(GeM,self).__init__()
@@ -207,23 +98,24 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, weight_dir, out_dim=11014, reduction='mean'):
+    def __init__(self, backbones, folds, stages, loss_types, weight_dir, out_dim=11014, reduction='mean'):
         super(EnsembleModels, self).__init__()
 
         self.backbones = backbones
         self.folds = folds
         self.stages = stages
+        self.loss_types = loss_types
         self.weight_dir = weight_dir
         self.out_dim = out_dim
         self.reduction = reduction  # mean or concat
         self.models = self.load_models()
 
-    def load_effnets(self, backbone, fold, stage):
-        weight_path = os.path.join(self.weight_dir, f'{backbone}_fold{fold}_stage{stage}.pth')
+    def load_effnets(self, backbone, fold, stage, loss_type):
+        weight_path = os.path.join(self.weight_dir, f'{backbone}_fold{fold}_stage{stage}_{loss_type}.pth')
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
 
-        model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False)
+        model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
@@ -232,7 +124,7 @@ class EnsembleModels(nn.Module):
         return model
 
     def load_models(self):
-        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages] if isinstance(p, list)] + [1])
+        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages, self.loss_types] if isinstance(p, list)] + [1])
 
         if not isinstance(self.backbones, list):
             self.backbones = [self.backbones] * max_len
@@ -243,10 +135,13 @@ class EnsembleModels(nn.Module):
         if not isinstance(self.stages, list):
             self.stages = [self.stages] * max_len
 
+        if not isinstance(self.loss_types, list):
+            self.loss_types = [self.loss_types] * max_len
+
         models = []
-        for backbone, fold, stage in zip(self.backbones, self.folds, self.stages):
-            print(f'Loading model {backbone} - fold {fold} - stage {stage}')
-            model = self.load_effnets(backbone, fold, stage)
+        for backbone, fold, stage, loss_type in zip(self.backbones, self.folds, self.stages, self.loss_types):
+            print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}')
+            model = self.load_effnets(backbone, fold, stage, loss_type)
             model.eval()
             models.append(model)
 
@@ -287,3 +182,78 @@ def inference(model, test_loader, tqdm=tqdm):
     _ = gc.collect()
     image_embeddings = np.concatenate(embeds)
     return image_embeddings
+
+
+class Swish(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, i):
+        result = i * torch.sigmoid(i)
+        ctx.save_for_backward(i)
+        return result
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        i = ctx.saved_variables[0]
+        sigmoid_i = torch.sigmoid(i)
+        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
+
+
+class Swish_module(nn.Module):
+    def forward(self, x):
+        return Swish.apply(x)
+
+class ArcMarginProduct_subcenter(nn.Module):
+    def __init__(self, in_features, out_features, k=3):
+        super().__init__()
+        self.weight = nn.Parameter(torch.FloatTensor(out_features*k, in_features))
+        self.reset_parameters()
+        self.k = k
+        self.out_features = out_features
+        
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.weight.size(1))
+        self.weight.data.uniform_(-stdv, stdv)
+        
+    def forward(self, features):
+        cosine_all = F.linear(features, F.normalize(self.weight))
+        cosine_all = cosine_all.view(-1, self.out_features, self.k)
+        cosine, _ = torch.max(cosine_all, dim=2)
+        return cosine
+
+
+class ArcModule(nn.Module):
+    def __init__(self, in_features, out_features, scale=30, margin=0.3):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.s = scale
+        self.m = margin
+        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        nn.init.xavier_normal_(self.weight)
+
+        self.cos_m = math.cos(m)
+        self.sin_m = math.sin(m)
+        self.th = torch.tensor(math.cos(math.pi - m))
+        self.mm = torch.tensor(math.sin(math.pi - m) * m)
+
+    def forward(self, inputs, labels):
+        cos_th = F.linear(inputs, F.normalize(self.weight))
+        cos_th = cos_th.clamp(-1, 1)
+        sin_th = torch.sqrt(1.0 - torch.pow(cos_th, 2))
+        cos_th_m = cos_th * self.cos_m - sin_th * self.sin_m
+        # print(type(cos_th), type(self.th), type(cos_th_m), type(self.mm))
+        cos_th_m = torch.where(cos_th > self.th, cos_th_m, cos_th - self.mm)
+
+        cond_v = cos_th - self.th
+        cond = cond_v <= 0
+        cos_th_m[cond] = (cos_th - self.mm)[cond]
+
+        if labels.dim() == 1:
+            labels = labels.unsqueeze(-1)
+        onehot = torch.zeros(cos_th.size()).cuda()
+        labels = labels.type(torch.LongTensor).cuda()
+        onehot.scatter_(1, labels, 1.0)
+        outputs = onehot * cos_th_m + (1.0 - onehot) * cos_th
+        outputs = outputs * self.s
+        return outputs
