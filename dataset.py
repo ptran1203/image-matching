@@ -48,7 +48,7 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.5),
+            A.Transpose(p=0.1),
             A.JpegCompression(quality_lower=80, quality_upper=100),
             A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.3),
             A.OneOf([
@@ -68,7 +68,7 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.5),
+            A.Transpose(p=0.3),
             A.JpegCompression(quality_lower=80, quality_upper=100),
             A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.5),
             A.OneOf([
