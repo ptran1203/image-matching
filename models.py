@@ -47,7 +47,7 @@ class EffnetV2(nn.Module):
         self.gem = GeM()
 
 
-    def forward(self, x, input_ids, attention_mask, lables=None):
+    def forward(self, x, input_ids, attention_mask, labels=None):
         x = self.enet(x)
         global_feat = self.gem(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
@@ -60,7 +60,7 @@ class EffnetV2(nn.Module):
         feat = l2_norm(feat, axis=-1)
 
         if labels is not None:
-            logits_m = self.arc(feat, lables)
+            logits_m = self.arc(feat, labels)
         else:
             logits_m = None
         return feat, logits_m
