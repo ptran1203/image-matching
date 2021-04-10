@@ -148,15 +148,15 @@ class ArcMarginCrossEntropy(nn.Module):
 
     def __init__(self, margin=0.50, scale=30.0, m_cos=0.3, label_smoothing=0.0):
         super(ArcMarginCrossEntropy, self).__init__()
-        self.m = m
+        self.m = margin
         self.m_cos = m_cos
-        self.s = s
+        self.s = scale
         self.ce = _getce(label_smoothing)
         
-        self.cos_m = math.cos(m)
-        self.sin_m = math.sin(m)
-        self.th = math.cos(math.pi - m)
-        self.mm = math.sin(math.pi - m) * m
+        self.cos_m = math.cos(margin)
+        self.sin_m = math.sin(margin)
+        self.th = math.cos(math.pi - margin)
+        self.mm = math.sin(math.pi - margin) * margin
         
 
     def forward(self, cosine, target):
@@ -254,5 +254,5 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
     return dist_ap, dist_an
 
 
-def _getce(n_dim, label_smoothing):
+def _getce(label_smoothing):
     return nn.CrossEntropyLoss() if not label_smoothing else LabelSmoothingLoss(classes=11014,smoothing=label_smoothing)
