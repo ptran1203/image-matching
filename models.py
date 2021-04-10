@@ -16,6 +16,7 @@ from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
 
+root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 class EffnetV2(nn.Module):
 
     def __init__(self, enet_type, out_dim, pretrained=True, bert=None, loss_type='aarc'):
@@ -28,7 +29,7 @@ class EffnetV2(nn.Module):
             pretrained=pretrained, as_sequential=True)[:-4]
 
         if bert is not None:
-            self.bert = AutoModel.from_pretrained('/content/bert-base-uncased')
+            self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
             self.bert = None

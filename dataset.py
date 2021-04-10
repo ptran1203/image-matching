@@ -8,7 +8,11 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 DATA_DIR = '/content'
-tokenizer = AutoTokenizer.from_pretrained('/content/bert-base-uncased')
+
+if os.path.exists('/content'):
+    tokenizer = AutoTokenizer.from_pretrained('/content/bert-base-uncased')
+else:
+    tokenizer = AutoTokenizer.from_pretrained('/kaggle/input/bert-base-uncased')
 
 class ShoppeDataset(Dataset):
     def __init__(self, csv, mode='train', transform=None,

@@ -141,34 +141,6 @@ class CosineMarginCrossEntropy(nn.Module):
         return loss
 
 
-class ArcMarginCrossEntropy(nn.Module):
-
-    def __init__(self, margin=0.50, scale=30.0, m_cos=0.3, label_smoothing=0.0):
-        super(ArcMarginCrossEntropy, self).__init__()
-        self.m = margin
-        self.m_cos = m_cos
-        self.s = scale
-        self.ce = _getce(label_smoothing)
-        
-        self.cos_m = math.cos(margin)
-        self.sin_m = math.sin(margin)
-        self.th = math.cos(math.pi - margin)
-        self.mm = math.sin(math.pi - margin) * margin
-        
-
-    def forward(self, cosine, target, out_dim):
-        
-        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
-        phi = cosine * self.cos_m - sine * self.sin_m
-        phi = torch.where(cosine > self.th, phi, cosine - self.mm)
-        # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
-
-        one_hot = F.one_hot(target, out_dim).float()
-        output = (one_hot * phi) + ((1.0 - one_hot) * cosine) 
-        output *= self.s
-        loss = self.ce(output, target)
-        return loss
-
 
 class TripletLoss(object):
     """Modified from Tong Xiao's open-reid (https://github.com/Cysu/open-reid).
