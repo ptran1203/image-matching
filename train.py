@@ -128,7 +128,7 @@ def train_epoch(model, loader, optimizer, criterion):
 
         optimizer.zero_grad()
 
-        feat, logits_m = model(image, input_ids, attention_mask)
+        feat, logits_m = model(image, input_ids, attention_mask, target)
         loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()

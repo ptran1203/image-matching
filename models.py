@@ -47,7 +47,7 @@ class EffnetV2(nn.Module):
         self.gem = GeM()
 
 
-    def forward(self, x, input_ids=None, attention_mask=None):
+    def forward(self, x, input_ids, attention_mask, lables=None):
         x = self.enet(x)
         global_feat = self.gem(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
@@ -59,7 +59,10 @@ class EffnetV2(nn.Module):
         feat = self.bn(feat)
         feat = l2_norm(feat, axis=-1)
 
-        logits_m = self.arc(feat)
+        if labels is not None:
+            logits_m = self.arc(feat, lables)
+        else:
+            logits_m = None
         return feat, logits_m
 
     @staticmethod
@@ -215,7 +218,7 @@ class ArcMarginProduct_subcenter(nn.Module):
         stdv = 1. / math.sqrt(self.weight.size(1))
         self.weight.data.uniform_(-stdv, stdv)
         
-    def forward(self, features):
+    def forward(self, features, labels):
         cosine_all = F.linear(features, F.normalize(self.weight))
         cosine_all = cosine_all.view(-1, self.out_features, self.k)
         cosine, _ = torch.max(cosine_all, dim=2)
