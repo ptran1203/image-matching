@@ -41,7 +41,7 @@ def loss_from_config(config, adaptive_margins):
     assert config.loss_type in all_
 
     if config.loss_type == 'arc':
-        return ArcMarginCrossEntropy(margin=config.margin, scale=config.scale, label_smoothing=config.label_smoothing)
+        return nn.CrossEntropyLoss()
     elif config.loss_type == 'aarc':
         return ArcFaceLossAdaptiveMargin(margins=adaptive_margins, scale=config.scale, label_smoothing=config.label_smoothing)
     elif config.loss_type == 'cos':

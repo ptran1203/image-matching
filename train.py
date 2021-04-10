@@ -25,8 +25,6 @@ from util import GradualWarmupSchedulerV2, row_wise_f1_score
 from models import EffnetV2
 from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
-from losses import ArcMarginCrossEntropy
-from losses import CosineMarginCrossEntropy
 from losses import encode_config, loss_from_config, decode_config
 
 default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0, triplet=True)
@@ -168,6 +166,28 @@ def val_epoch(model, valid_loader, criterion, valid_df):
 
     return val_f1_score
 
+def get_criterion(args, out_dim, margins):
+    LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins)
+    loss_config = decode_config(args.loss_config)
+    if loss_config.triplet:
+        if loss_config.loss_type == 'aarc':
+            def criterion(feat, logits, target):
+                return LossFunction(logits, target, out_dim) + TripletLoss(0.3)(feat, target)
+        else:
+            def criterion(feat, logits, target):
+                return LossFunction(logits, target) + TripletLoss(0.3)(feat, target)
+    else:
+        if loss_config.loss_type == 'aarc':
+            def criterion(feat, logits, target):
+                return LossFunction(logits, target, out_dim)
+        else:
+            def criterion(feat, logits, target):
+                return LossFunction(logits, target)
+
+
+        
+
+    return criterion
 
 def main(args):
 
@@ -203,17 +223,7 @@ def main(args):
     model = model.cuda()
 
     # loss func
-    LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins)
-    if loss_config.triplet:
-        def criterion(feat, logits, target):
-            loss_m = LossFunction(logits, target, out_dim)
-            triplet_loss = TripletLoss(0.3)(feat, target)
-
-            return loss_m + triplet_loss
-    else:
-        def criterion(feat, logits, target):
-            loss_m = LossFunction(logits, target, out_dim)
-            return loss_m
+    criterion = get_criterion(args, out_dim, margins)
 
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
@@ -235,7 +245,7 @@ def main(args):
 
     # train & valid loop
     best_score = -1
-    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}.pth')
+    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}_{loss_config.loss_type}.pth')
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
         print(time.ctime(), f'Epoch: {epoch}/{args.n_epochs}')
