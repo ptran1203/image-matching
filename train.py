@@ -75,6 +75,7 @@ def search_similiar_images(embeds, test_df, thr=0.5):
     embeds = cp.array(embeds)
 
     preds = []
+    scores = []
     CHUNK = 1024 * 4
 
     CTS = len(embeds) // CHUNK
@@ -95,8 +96,9 @@ def search_similiar_images(embeds, test_df, thr=0.5):
             IDX = cp.where(cts[k,] > thr)[0]
             o = test_df.iloc[cp.asnumpy(IDX)].posting_id.values
             preds.append(o)
+            scores.append(cts[k,][IDX])
 
-    return preds
+    return preds, scores
 
 
 def generate_embeddings(model, test_loader):
@@ -159,7 +161,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
             embeds.append(feat.detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
-    preds = search_similiar_images(embeds, valid_df)
+    preds, _ = search_similiar_images(embeds, valid_df)
     _, val_f1_score = row_wise_f1_score(valid_df.target, preds)
 
     return val_f1_score

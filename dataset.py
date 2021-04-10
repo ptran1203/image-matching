@@ -5,16 +5,21 @@ import pandas as pd
 import albumentations as A
 import torch
 from torch.utils.data import Dataset
+from transformers import AutoTokenizer
 
 DATA_DIR = '/content'
+tokenizer = AutoTokenizer.from_pretrained('../input/bert-base-uncased')
 
 class ShoppeDataset(Dataset):
-    def __init__(self, csv, mode='train', transform=None, image_dir=os.path.join(DATA_DIR, 'train_images')):
+    def __init__(self, csv, mode='train', transform=None,
+        image_dir=os.path.join(DATA_DIR, 'train_images'),
+    ):
 
         self.csv = csv.reset_index()
         self.mode = mode
         self.transform = transform
         self.img_dir = image_dir
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return self.csv.shape[0]
@@ -22,18 +27,19 @@ class ShoppeDataset(Dataset):
     def __getitem__(self, index):
         row = self.csv.iloc[index]
         image = cv2.imread(os.path.join(self.img_dir, row.image))[:,:,::-1]
-
-        if self.transform is not None:
-            res = self.transform(image=image)
-            image = res['image'].astype(np.float32)
-        else:
-            image = image.astype(np.float32)
+        text = row.title
+        text = self.tokenizer(text, padding='max_length', truncation=True, max_length=16, return_tensors="pt")
+        input_ids = text['input_ids'][0]
+        attention_mask = text['attention_mask'][0]
+        
+        # transform
+        image = self.transform(image=image)['image'].astype(np.float32)
 
         image = image.transpose(2, 0, 1)
         if self.mode == 'test':
-            return torch.tensor(image)
+            return torch.tensor(image), input_ids, attention_mask
         else:
-            return torch.tensor(image), torch.tensor(row.label_group)
+            return torch.tensor(image), input_ids, attention_mask, torch.tensor(row.label_group)
 
 
 def get_transforms(image_size, stage=1, norm=True):

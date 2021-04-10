@@ -14,6 +14,7 @@ from rexnetv1 import ReXNetV1
 from resnest.torch import resnest101
 from util import l2_norm
 from tqdm import tqdm
+from transformers import AutoModel
 
 class Swish(torch.autograd.Function):
 
@@ -80,6 +81,48 @@ class Effnet(nn.Module):
 
 
 class EffnetV2(nn.Module):
+
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=None):
+        super(EffnetV2, self).__init__()
+        enet_type = enet_type.replace('-', '_')
+
+        feat_dim = 512
+        planes = self._get_global_dim(enet_type)
+        self.enet = geffnet.create_model(enet_type,
+            pretrained=pretrained, as_sequential=True)[:-4]
+
+        if bert is not None:
+            self.bert = AutoModel.from_pretrained('/content/bert-base-uncased')
+            planes += self.bert.config.hidden_size
+        else:
+            self.bert = None
+
+        # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
+        # self.swish = Swish_module()
+        self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
+
+        self.to_feat = nn.Linear(planes, feat_dim)
+        self.bn = nn.BatchNorm1d(feat_dim)
+        self.bn.bias.requires_grad_(False)  # no shift
+
+        self.gem = GeM()
+
+
+    def forward(self, x, input_ids=None, attention_mask=None):
+        x = self.enet(x)
+        global_feat = self.gem(x)
+        global_feat = global_feat.view(global_feat.size()[0], -1)
+        if self.bert is not None:
+            text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
+            x = torch.cat([x, text], 1)
+
+        feat = self.to_feat(global_feat)
+        feat = self.bn(feat)
+        logits_m = self.arc(feat)
+        feat = l2_norm(feat, axis=-1)
+
+        return feat, logits_m
+
     @staticmethod
     def _get_global_dim(enet_type):
         if 'b0' in enet_type:
@@ -98,41 +141,6 @@ class EffnetV2(nn.Module):
             return 2304
         elif 'b7' in enet_type:
             return 2560
-
-    def __init__(self, enet_type, out_dim, pretrained=True):
-        super(EffnetV2, self).__init__()
-        enet_type = enet_type.replace('-', '_')
-
-        feat_dim = 512
-        planes = self._get_global_dim(enet_type)
-        self.enet = geffnet.create_model(enet_type,
-            pretrained=pretrained, as_sequential=True)[:-4]
-        # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
-        # self.swish = Swish_module()
-        self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
-
-        self.to_feat = nn.Linear(planes, feat_dim)
-        self.bn = nn.BatchNorm1d(feat_dim)
-        self.bn.bias.requires_grad_(False)  # no shift
-
-        self.gem = GeM()
-
-
-    def forward(self, x):
-        x = self.enet(x)
-
-        # global_feat = F.adaptive_avg_pool2d(x, 1)
-        global_feat = self.gem(x)
-        # global_feat = F.avg_pool2d(x, x.size()[2:])
-        global_feat = global_feat.view(global_feat.size()[0], -1)
-        # global_feat = F.dropout(global_feat, p=0.2)
-
-        feat = self.to_feat(global_feat)
-        feat = self.bn(feat)
-        logits_m = self.arc(feat)
-        feat = l2_norm(feat, axis=-1)
-
-        return feat, logits_m
 
 
 class RexNet20(nn.Module):
