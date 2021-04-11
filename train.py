@@ -217,7 +217,7 @@ def main(args):
     train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size,
                                                 num_workers=args.num_workers,
                                                 pin_memory=True,
-                                                shuffle=True, drop_last=False)
+                                                shuffle=True, drop_last=True)
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
     loss_config = decode_config(args.loss_config)
