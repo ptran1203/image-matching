@@ -27,6 +27,7 @@ from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
 from losses import encode_config, loss_from_config, decode_config
 from util import weight_file
+from sklearn.preprocessing import LabelEncoder
 
 default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0, triplet=True)
 
@@ -201,10 +202,11 @@ def main(args):
 
     # get train and valid dataset
     df_train = df[df['fold'] != args.fold]
+    df_train['label_group'] =  LabelEncoder().fit_transform(df_train.label_group)
+
     df_valid = df[df['fold'] == args.fold]
 
     out_dim = df_train.label_group.nunique()
-    out_dim = 11014
     print(f"out_dim = {out_dim}")
  
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
