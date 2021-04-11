@@ -2,8 +2,9 @@ import os
 import cv2
 import numpy as np
 import pandas as pd
-import albumentations as A
 import torch
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
@@ -119,6 +120,9 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train.append(A.Normalize(mean=0, std=1))
         transforms_val.append(A.Normalize(mean=0, std=1))
 
+    # transforms_train.append(ToTensorV2(p=1.0))
+    # transforms_val.append(ToTensorV2(p=1.0))
+
     return A.Compose(transforms_train), A.Compose(transforms_val)
 
 
@@ -129,6 +133,4 @@ def get_df(groups=0):
         selected = df.label_group.unique()[:groups]
         df = df[df.label_group.isin(selected)]
 
-    out_dim = df.label_group.nunique()
-
-    return df, out_dim
+    return df

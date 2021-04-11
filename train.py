@@ -189,16 +189,11 @@ def get_criterion(args, out_dim, margins):
 def main(args):
 
     # get dataframe
-    df, out_dim = get_df(args.groups)
-    print(list(df.columns.values))
-    print(df.head())
-    print(f"out_dim = {out_dim}")
+    df = get_df(args.groups)
 
     # get adaptive margin
     tmp = np.sqrt(1 / np.sqrt(df['label_group'].value_counts().sort_index().values))
     margins = (tmp - tmp.min()) / (tmp.max() - tmp.min()) * 0.45 + 0.05
-
-    print("Adaptive margin", margins)
 
     # get augmentations
     transforms_train, transforms_val = get_transforms(args.image_size, args.stage)
@@ -207,11 +202,18 @@ def main(args):
     df_train = df[df['fold'] != args.fold]
     df_valid = df[df['fold'] == args.fold]
 
+    out_dim = df_train.label_group.nunique()
+    print(f"out_dim = {out_dim}")
+ 
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
     dataset_valid = ShoppeDataset(df_valid, 'val', transform=transforms_val)
 
     print(f'Train on {len(df_train)} images, validate on {len(df_valid)} images')
 
+    train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size,
+                                                num_workers=args.num_workers,
+                                                pin_memory=True,
+                                                shuffle=True, drop_last=False)
     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
 
     loss_config = decode_config(args.loss_config)
@@ -247,9 +249,6 @@ def main(args):
 
         print(time.ctime(), f'Epoch: {epoch}/{args.n_epochs}')
         scheduler_warmup.step(epoch - 1)
-
-        train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=args.batch_size, num_workers=args.num_workers,
-                                                  shuffle=True, drop_last=True)
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
         f1score = val_epoch(model, valid_loader, criterion, df_valid)
