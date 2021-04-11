@@ -248,7 +248,7 @@ def main(args):
     best_score = -1
     model_file = os.path.join(
         args.model_dir,
-        weight_file(args.kernel_type, args.fold, args.stage, oss_config.loss_type, out_dim)
+        weight_file(args.kernel_type, args.fold, args.stage, loss_config.loss_type, out_dim)
     )
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
