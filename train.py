@@ -26,6 +26,7 @@ from models import EffnetV2
 from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
 from losses import encode_config, loss_from_config, decode_config
+from util import weight_file
 
 default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0, triplet=True)
 
@@ -244,7 +245,10 @@ def main(args):
 
     # train & valid loop
     best_score = -1
-    model_file = os.path.join(args.model_dir, f'{args.kernel_type}_fold{args.fold}_stage{args.stage}_{loss_config.loss_type}.pth')
+    model_file = os.path.join(
+        args.model_dir,
+        weight_file(args.kernel_type, args.fold, args.stage, oss_config.loss_type, out_dim)
+    )
     for epoch in range(args.start_from_epoch, args.n_epochs+1):
 
         print(time.ctime(), f'Epoch: {epoch}/{args.n_epochs}')

@@ -104,7 +104,7 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, loss_types, weight_dir, out_dim=11014, reduction='mean'):
+    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean'):
         super(EnsembleModels, self).__init__()
 
         self.backbones = backbones
@@ -112,7 +112,6 @@ class EnsembleModels(nn.Module):
         self.stages = stages
         self.loss_types = loss_types
         self.weight_dir = weight_dir
-        self.out_dim = out_dim
         self.reduction = reduction  # mean or concat
         self.models = self.load_models()
 
@@ -120,8 +119,9 @@ class EnsembleModels(nn.Module):
         weight_path = os.path.join(self.weight_dir, f'{backbone}_fold{fold}_stage{stage}_{loss_type}.pth')
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
-
-        model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
+        
+        out_dim = self.get_outdim(weight_path)
+        model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
@@ -168,6 +168,10 @@ class EnsembleModels(nn.Module):
             return torch.mean(torch.stack(results), dim=0)
 
         return results
+
+    @staticmethod
+    def get_outdim(path):
+        return int(path.split(".")[0].split("outdim")[1])
 
 
 def inference(model, test_loader, tqdm=tqdm):

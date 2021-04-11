@@ -2,6 +2,7 @@ from typing import Dict, Tuple, Any
 import numpy as np
 import pandas as pd
 import torch
+import os
 
 def _convert_to_numpy(list_of_str):
     return np.array(list_of_str.split(' '))
@@ -47,3 +48,15 @@ try:
 except:
     class GradualWarmupSchedulerV2:
         pass
+
+
+def weight_file(model_type, fold, stage, loss_type, out_dim):
+    return f'{model_type}_fold{fold}_stage{stage}_{loss_type}_outdim{out_dim}.pth'
+
+
+def search_weight(weight_dir, model_type, fold, stage, loss_type):
+    all_ = os.listdir(weight_dir)
+    expect = weight_file(model_type, fold, stage, loss_type, 0).split("_outdim")[0]
+    for f in all_:
+        if f.startswith(expect):
+            return os.path.join(weight_dir, f)
