@@ -15,6 +15,8 @@ from resnest.torch import resnest101
 from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
+from util import search_weight
+
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 class EffnetV2(nn.Module):
@@ -116,7 +118,7 @@ class EnsembleModels(nn.Module):
         self.models = self.load_models()
 
     def load_effnets(self, backbone, fold, stage, loss_type):
-        weight_path = os.path.join(self.weight_dir, f'{backbone}_fold{fold}_stage{stage}_{loss_type}.pth')
+        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_type)
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
         

@@ -204,6 +204,7 @@ def main(args):
     df_valid = df[df['fold'] == args.fold]
 
     out_dim = df_train.label_group.nunique()
+    out_dim = 11014
     print(f"out_dim = {out_dim}")
  
     dataset_train = ShoppeDataset(df_train, 'train', transform=transforms_train)
