@@ -167,7 +167,7 @@ class EnsembleModels(nn.Module):
         if self.reduction == 'concat':
             return torch.cat(results, dim=-1)
         elif self.reduction == 'mean':
-            return torch.mean(torch.stack(results), dim=0)
+            return torch.mean(torch.stack(results), dim=1)
 
         return results
 
