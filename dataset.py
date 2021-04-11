@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
+# from albumentations.pytorch.transforms import ToTensorV2
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
