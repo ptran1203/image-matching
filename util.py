@@ -60,3 +60,5 @@ def search_weight(weight_dir, model_type, fold, stage, loss_type):
     for f in all_:
         if f.startswith(expect):
             return os.path.join(weight_dir, f)
+
+    return "none"
