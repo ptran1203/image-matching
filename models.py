@@ -19,6 +19,8 @@ from util import search_weight
 # import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
+
+
 class EffnetV2(nn.Module):
 
     def __init__(self, enet_type, out_dim, pretrained=True, bert=None, loss_type='aarc'):
@@ -56,6 +58,7 @@ class EffnetV2(nn.Module):
         x = self.enet(x)
         global_feat = self.gem(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
+
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
             x = torch.cat([x, text], 1)
@@ -93,12 +96,11 @@ class EffnetV2(nn.Module):
 class Resnest50(nn.Module):
 
     def __init__(self, out_dim, pretrained=True, bert=None, loss_type='aarc'):
-        super(Resnest, self).__init__()
+        super(Resnest50, self).__init__()
 
         feat_dim = 512
-        planes = 2048
         self.backbone = resnest50(pretrained=pretrained)
-
+        planes = self.backbone.fc.in_features
         if bert is not None:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
@@ -106,7 +108,9 @@ class Resnest50(nn.Module):
             self.bert = None
 
         
-        self.in_features = self.backbone.classifier.in_features
+        
+        self.backbone.fc = nn.Identity()
+        self.backbone.avgpool = GeM()
 
         if loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
@@ -117,20 +121,16 @@ class Resnest50(nn.Module):
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
-        # self.bn.bias.requires_grad_(False)  # no shift
+        self.bn.bias.requires_grad_(False)  # no shift
 
-        self.gem = GeM()
+    def forward(self, x, input_ids=None, attention_mask=None, labels=None):
+        x = self.backbone(x)
 
-
-    def forward(self, x, input_ids, attention_mask, labels=None):
-        x = self.enet(x)
-        global_feat = self.gem(x)
-        global_feat = global_feat.view(global_feat.size()[0], -1)
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
             x = torch.cat([x, text], 1)
 
-        feat = self.to_feat(global_feat)
+        feat = self.to_feat(x)
         feat = self.bn(feat)
         feat = l2_norm(feat, axis=-1)
 
@@ -138,6 +138,7 @@ class Resnest50(nn.Module):
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
+
         return feat, logits_m
 
 
@@ -179,7 +180,10 @@ class EnsembleModels(nn.Module):
             backbone = self.get_backbone(weight_path)
 
         print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}')
-        model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
+        if backbone == 'resnest50':
+            model = Resnest50(out_dim=out_dim, pretrained=False, loss_type=loss_type)
+        else:
+            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
