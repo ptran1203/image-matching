@@ -9,14 +9,14 @@ import gc
 from torch.nn.parameter import Parameter
 from torch.autograd import Variable
 from torch.hub import load_state_dict_from_url
-from torchvision.models.resnet import ResNet, Bottleneck
+from torchvision.models.resnet import ResNet
 from rexnetv1 import ReXNetV1
 from resnest.torch import resnest101
 from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
 from util import search_weight
-
+import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 class EffnetV2(nn.Module):
@@ -48,6 +48,77 @@ class EffnetV2(nn.Module):
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
         self.bn.bias.requires_grad_(False)  # no shift
+
+        self.gem = GeM()
+
+
+    def forward(self, x, input_ids, attention_mask, labels=None):
+        x = self.enet(x)
+        global_feat = self.gem(x)
+        global_feat = global_feat.view(global_feat.size()[0], -1)
+        if self.bert is not None:
+            text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
+            x = torch.cat([x, text], 1)
+
+        feat = self.to_feat(global_feat)
+        feat = self.bn(feat)
+        feat = l2_norm(feat, axis=-1)
+
+        if labels is not None:
+            logits_m = self.arc(feat, labels)
+        else:
+            logits_m = None
+        return feat, logits_m
+
+    @staticmethod
+    def _get_global_dim(enet_type):
+        if 'b0' in enet_type:
+            return 1208
+        elif 'b1' in enet_type:
+            return 1280
+        elif 'b2' in enet_type:
+            return 1408
+        elif 'b3' in enet_type:
+            return 1536
+        elif 'b4' in enet_type:
+            return 1792
+        elif 'b5' in enet_type:
+            return 2048
+        elif 'b6' in enet_type:
+            return 2304
+        elif 'b7' in enet_type:
+            return 2560
+
+
+class Resnest(nn.Module):
+
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=None, loss_type='aarc'):
+        super(Resnest, self).__init__()
+        enet_type = enet_type.replace('-', '_')
+
+        feat_dim = 512
+        planes = self._get_global_dim(enet_type)
+        self.backbone = timm.create_model(backbone, pretrained=pretrained)
+
+        if bert is not None:
+            self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
+            planes += self.bert.config.hidden_size
+        else:
+            self.bert = None
+
+        
+        self.in_features = self.backbone.classifier.in_features
+
+        if loss_type == 'aarc':
+            self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
+        elif loss_type == 'arc':
+            self.arc = ArcModule(feat_dim, out_dim)
+        elif loss_type == 'cos':
+            self.arc = CosModule(feat_dim, out_dim)
+
+        self.to_feat = nn.Linear(planes, feat_dim)
+        self.bn = nn.BatchNorm1d(feat_dim)
+        # self.bn.bias.requires_grad_(False)  # no shift
 
         self.gem = GeM()
 
@@ -181,6 +252,7 @@ class EnsembleModels(nn.Module):
     @staticmethod
     def get_backbone(path):
         return path.split('/')[-1].split('_fold')[0]
+
 
 def inference(model, test_loader, tqdm=tqdm):
     embeds = []
