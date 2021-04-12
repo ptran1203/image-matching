@@ -126,6 +126,7 @@ class EnsembleModels(nn.Module):
         if backbone == 'auto':
             backbone = self.get_backbone(weight_path)
 
+        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}')
         model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
@@ -151,7 +152,6 @@ class EnsembleModels(nn.Module):
 
         models = []
         for backbone, fold, stage, loss_type in zip(self.backbones, self.folds, self.stages, self.loss_types):
-            print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}')
             model = self.load_effnets(backbone, fold, stage, loss_type)
             model.eval()
             models.append(model)
