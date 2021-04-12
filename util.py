@@ -66,8 +66,8 @@ def match_weight(f, model_type, fold, stage, loss_type):
     m, rest = f.split("_fold")
     match_model_type = model_type in {'auto', m}
     parts = rest.split("_")
-    _fold = int(parts[1].replace('fold', ''))
-    _stage = int(parts[2].replace('stage', ''))
-    _loss_type = parts[3]
+    _fold = int(parts[0].replace('fold', ''))
+    _stage = int(parts[1].replace('stage', ''))
+    _loss_type = parts[2]
 
     return match_model_type and _fold == fold and _stage == stage and _loss_type == loss_type
