@@ -180,7 +180,7 @@ class EnsembleModels(nn.Module):
 
     @staticmethod
     def get_backbone(path):
-        return path.split('_fold')[0]
+        return path.split('/')[-1].split('_fold')[0]
 
 def inference(model, test_loader, tqdm=tqdm):
     embeds = []
