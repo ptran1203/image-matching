@@ -164,12 +164,12 @@ class EnsembleModels(nn.Module):
         if len(results) == 1:
             return results[0]
 
-        if self.reduction == 'concat':
-            return torch.cat(results, dim=-1)
+        if self.reduction in {'cat', 'concat'}:
+            return l2_norm(torch.cat(results, dim=-1))
         elif self.reduction == 'mean':
-            return torch.mean(torch.stack(results), dim=1)
+            return l2_norm(torch.mean(torch.stack(results), dim=0))
 
-        return results
+        return torch.stack(results)
 
     @staticmethod
     def get_outdim(path):

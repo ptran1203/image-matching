@@ -56,9 +56,18 @@ def weight_file(model_type, fold, stage, loss_type, out_dim):
 
 def search_weight(weight_dir, model_type, fold, stage, loss_type):
     all_ = os.listdir(weight_dir)
-    expect = weight_file(model_type, fold, stage, loss_type, 0).split("_outdim")[0]
     for f in all_:
-        if f.startswith(expect):
+        if match_weight(f, model_type, fold, stage, loss_type):
             return os.path.join(weight_dir, f)
 
     return "none"
+
+def match_weight(f, model_type, fold, stage, loss_type):
+    parts = f.split("_")
+
+    match_model_type = model_type in {'auto', parts[0]}
+    _fold = int(parts[1].replace('fold', ''))
+    _stage = int(parts[2].replace('stage', ''))
+    _loss_type = parts[3]
+
+    return match_model_type and _fold == fold and _stage == stage and _loss_type == loss_type
