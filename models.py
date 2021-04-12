@@ -61,7 +61,7 @@ class EffnetV2(nn.Module):
 
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            x = torch.cat([x, text], 1)
+            global_feat = torch.cat([global_feat, text], 1)
 
         feat = self.to_feat(global_feat)
         feat = self.bn(feat)
