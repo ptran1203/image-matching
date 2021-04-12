@@ -16,7 +16,7 @@ from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
 from util import search_weight
-import timm
+# import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 class EffnetV2(nn.Module):
