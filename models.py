@@ -123,6 +123,9 @@ class EnsembleModels(nn.Module):
             raise FileNotFoundError(f'{weight_path} does not exist')
         
         out_dim = self.get_outdim(weight_path)
+        if backbone == 'auto':
+            backbone = self.get_backbone(weight_path)
+
         model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
@@ -175,6 +178,9 @@ class EnsembleModels(nn.Module):
     def get_outdim(path):
         return int(path.split(".")[0].split("outdim")[1])
 
+    @staticmethod
+    def get_backbone(path):
+        return path.split('_fold')[0]
 
 def inference(model, test_loader, tqdm=tqdm):
     embeds = []
