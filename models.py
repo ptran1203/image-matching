@@ -190,10 +190,9 @@ def inference(model, test_loader, tqdm=tqdm):
 
             image_embeddings = feat.detach().cpu().numpy()
             embeds.append(image_embeddings)
-        
-    _ = gc.collect()
-    image_embeddings = np.concatenate(embeds)
-    return image_embeddings
+
+    gc.collect()
+    return np.concatenate(embeds)
 
 
 class Swish(torch.autograd.Function):
