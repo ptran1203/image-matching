@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument('--start-from-epoch', type=int, default=1)
     parser.add_argument('--stop-at-epoch', type=int, default=999)
     parser.add_argument('--DEBUG', action='store_true')
+    parser.add_argument('--bert', action='store_true')
     parser.add_argument('--model-dir', type=str, default='./weights')
     parser.add_argument('--log-dir', type=str, default='./logs')
     parser.add_argument('--fold', type=int, default=0)
@@ -52,6 +53,7 @@ def parse_args():
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
     parser.add_argument('--warmup-epochs', type=int, default=1)
+    
     parser.add_argument('--loss-config', type=str, default=default_loss_config)
 
     args, _ = parser.parse_known_args()
@@ -223,9 +225,9 @@ def main(args):
     loss_config = decode_config(args.loss_config)
     # model
     if args.enet_type == 'resnest50':
-        model = Resnest50(out_dim=out_dim, loss_type=loss_config.loss_type)
+        model = Resnest50(out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert)
     else:
-        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type)
+        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert)
     model = model.cuda()
 
     # loss func

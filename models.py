@@ -23,7 +23,7 @@ root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 
 class EffnetV2(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True, bert=None, loss_type='aarc'):
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_type='aarc'):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
@@ -32,7 +32,7 @@ class EffnetV2(nn.Module):
         self.enet = geffnet.create_model(enet_type,
             pretrained=pretrained, as_sequential=True)[:-4]
 
-        if bert is not None:
+        if bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
@@ -95,20 +95,18 @@ class EffnetV2(nn.Module):
 
 class Resnest50(nn.Module):
 
-    def __init__(self, out_dim, pretrained=True, bert=None, loss_type='aarc'):
+    def __init__(self, out_dim, pretrained=True, bert=False, loss_type='aarc'):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
         self.backbone = resnest50(pretrained=pretrained)
         planes = self.backbone.fc.in_features
-        if bert is not None:
+        if bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
             self.bert = None
 
-        
-        
         self.backbone.fc = nn.Identity()
         self.backbone.avgpool = GeM()
 
@@ -153,7 +151,7 @@ class GeM(nn.Module):
         
     def gem(self, x, p=3, eps=1e-6):
         return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1./p)
-        
+
     def __repr__(self):
         return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(self.eps) + ')'
 
