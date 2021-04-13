@@ -53,6 +53,7 @@ def parse_args():
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
     parser.add_argument('--warmup-epochs', type=int, default=1)
+    parser.add_argument('--full', action='store_true')
     
     parser.add_argument('--loss-config', type=str, default=default_loss_config)
 
@@ -203,7 +204,7 @@ def main(args):
     transforms_train, transforms_val = get_transforms(args.image_size, args.stage)
 
     # get train and valid dataset
-    df_train = df[df['fold'] != args.fold]
+    df_train = df[df['fold'] != args.fold] if not args.full else df
     df_train['label_group'] =  LabelEncoder().fit_transform(df_train.label_group)
 
     df_valid = df[df['fold'] == args.fold]
