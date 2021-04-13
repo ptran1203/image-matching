@@ -99,7 +99,7 @@ class Resnest50(nn.Module):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
-        self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=False).children())[:-2])
+        self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=True).children())[:-2])
         planes = 2048
         if bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
