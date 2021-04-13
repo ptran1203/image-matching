@@ -99,16 +99,15 @@ class Resnest50(nn.Module):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
-        self.backbone = resnest50(pretrained=pretrained)
-        planes = self.backbone.fc.in_features
+        self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=False).children())[:-2])
+        planes = 2048
         if bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
             self.bert = None
 
-        self.backbone.fc = nn.Identity()
-        self.backbone.avgpool = GeM()
+        self.gem = GeM()
 
         if loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
@@ -119,16 +118,18 @@ class Resnest50(nn.Module):
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
-        self.bn.bias.requires_grad_(False)  # no shift
+        # self.bn.bias.requires_grad_(False)  # no shift
 
     def forward(self, x, input_ids=None, attention_mask=None, labels=None):
         x = self.backbone(x)
+        global_feat = self.gem(x)
+        global_feat = global_feat.view(global_feat.size()[0], -1)
 
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            x = torch.cat([x, text], 1)
+            global_feat = torch.cat([global_feat, text], 1)
 
-        feat = self.to_feat(x)
+        feat = self.to_feat(global_feat)
         feat = self.bn(feat)
         feat = l2_norm(feat, axis=-1)
 
@@ -136,7 +137,6 @@ class Resnest50(nn.Module):
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
-
         return feat, logits_m
 
 
