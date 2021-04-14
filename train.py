@@ -29,7 +29,7 @@ from losses import encode_config, loss_from_config, decode_config
 from util import weight_file
 from sklearn.preprocessing import LabelEncoder
 
-default_loss_config = encode_config(loss_type='aarc', margin=0.3, scale=30, label_smoothing=0.0, triplet=True)
+default_loss_config = encode_config(loss_type='cos', margin=0.6, scale=30, label_smoothing=0.0, triplet=False, cls='CE')
 
 def parse_args():
 
