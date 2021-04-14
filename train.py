@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--load-from', type=str, default='')
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
-    parser.add_argument('--warmup-epochs', type=int, default=1)
+    parser.add_argument('--warmup-epochs', type=int, default=10)
     parser.add_argument('--full', action='store_true')
     
     parser.add_argument('--loss-config', type=str, default=default_loss_config)
@@ -255,7 +255,8 @@ def main(args):
 
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
-    scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=args.warmup_epochs, after_scheduler=scheduler_cosine)
+    warmup_epochs = args.warmup_epochs if args.stage == 1 else 0
+    scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=warmup_epochs, after_scheduler=scheduler_cosine)
 
     # train & valid loop
     best_score = -1
