@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 import os
+import torch.nn.functional as F
 
 def _convert_to_numpy(list_of_str):
     return np.array(list_of_str.split(' '))
@@ -71,3 +72,17 @@ def match_weight(f, model_type, fold, stage, loss_type):
     _loss_type = parts[2]
 
     return match_model_type and _fold == fold and _stage == stage and _loss_type == loss_type
+
+
+def scale_img(img, ratio=1.0, same_shape=False, gs=32):
+    # https://github.com/ultralytics/yolov5/blob/1487bc84ff3babfb502dffb5ffbdc7e02fcb1879/utils/torch_utils.py#L247
+
+    if ratio == 1.0:
+        return img
+    else:
+        h, w = img.shape[2:]
+        s = (int(h * ratio), int(w * ratio))  # new size
+        img = F.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
+        if not same_shape:  # pad/crop img
+            h, w = [math.ceil(x * ratio / gs) * gs for x in (h, w)]
+        return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean

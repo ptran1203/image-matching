@@ -15,7 +15,7 @@ from resnest.torch import resnest101, resnest50
 from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
-from util import search_weight
+from util import search_weight, scale_img
 # import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
@@ -157,7 +157,7 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean'):
+    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean', tta=False):
         super(EnsembleModels, self).__init__()
 
         self.backbones = backbones
@@ -166,6 +166,7 @@ class EnsembleModels(nn.Module):
         self.loss_types = loss_types
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
+        self.tta = tta
         self.models = self.load_models()
 
     def load_effnets(self, backbone, fold, stage, loss_type):
@@ -215,8 +216,17 @@ class EnsembleModels(nn.Module):
     def forward(self, img, input_ids, att_mask):
         results = []
         for model in self.models:
-            feat, _ = model(img, input_ids, att_mask)
-            results.append(feat)
+            if self.tta:
+                tta_preds = []
+                for trans_img in self.get_TTA(img):
+                    feat, _ = model(trans_img, input_ids, att_mask)
+                    tta_preds.append(feat)
+
+                mean_pred = torch.mean(torch.stack(tta_preds), dim=0)
+                results.append(l2_norm(mean_pred))
+            else:
+                feat, _ = model(img, input_ids, att_mask)
+                results.append(feat)
 
         if len(results) == 1:
             return results[0]
@@ -227,6 +237,14 @@ class EnsembleModels(nn.Module):
             return l2_norm(torch.mean(torch.stack(results), dim=0))
 
         return torch.stack(results)
+
+    @staticmethod
+    def get_TTA(img):
+        return [
+            img,
+            img.flip(3)  # Hflip
+            scale_img(img, 0.8),
+        ]
 
     @staticmethod
     def get_outdim(path):
