@@ -34,7 +34,7 @@ def decode_config(string):
     return DictToObject(config)
 
 
-def loss_from_config(config, adaptive_margins):
+def loss_from_config(config, adaptive_margins, classes):
     config = decode_config(config)
 
     all_ = ['arc', 'aarc', 'cos']
@@ -43,23 +43,7 @@ def loss_from_config(config, adaptive_margins):
     if config.loss_type == 'aarc':
         return ArcFaceLossAdaptiveMargin(margins=adaptive_margins, scale=config.scale, label_smoothing=config.label_smoothing)
     
-    return nn.CrossEntropyLoss()
-
-class CrossEntropyLossWithLabelSmoothing(nn.Module):
-    def __init__(self, n_dim, ls_=0.9):
-        super().__init__()
-        self.n_dim = n_dim
-        self.ls_ = ls_
-
-    def forward(self, x, target):
-        target = F.one_hot(target, self.n_dim).float()
-        target *= self.ls_
-        target += (1 - self.ls_) / self.n_dim
-
-        logprobs = nn.functional.log_softmax(x, dim=-1)
-        loss = -logprobs * target
-        loss = loss.sum(-1)
-        return loss.mean()
+    return nn.CrossEntropyLoss() if not config.label_smoothing else LabelSmoothingLoss(classes=classes, smoothing=config.label_smoothing)
 
 
 class LabelSmoothingLoss(nn.Module):
@@ -98,7 +82,7 @@ class DenseCrossEntropy(nn.Module):
 
 
 class ArcFaceLossAdaptiveMargin(nn.modules.Module):
-    def __init__(self, margins, scale=30.0, label_smoothing=0.0):
+    def __init__(self, margins, scale=30.0, classes=11014, label_smoothing=0.0):
         super().__init__()
         self.crit = DenseCrossEntropy()
         self.s = scale
@@ -120,21 +104,6 @@ class ArcFaceLossAdaptiveMargin(nn.modules.Module):
         output = (labels * phi) + ((1.0 - labels) * cosine)
         output *= self.s
         loss = self.crit(output, labels)
-        return loss
-
-
-class CosineMarginCrossEntropy(nn.Module):
-
-    def __init__(self, margin=0.60, scale=30.0, label_smoothing=0.0):
-        super(CosineMarginCrossEntropy, self).__init__()
-        self.m = margin
-        self.s = scale
-        self.ce = _getce(label_smoothing)
-
-    def forward(self, logits, labels, out_dim):
-        one_hot = F.one_hot(labels, out_dim).float()
-        output = self.s * (logits - one_hot * self.m)
-        loss = self.ce(output, labels)
         return loss
 
 
@@ -220,5 +189,5 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
     return dist_ap, dist_an
 
 
-def _getce(label_smoothing):
-    return nn.CrossEntropyLoss() if not label_smoothing else LabelSmoothingLoss(classes=11014,smoothing=label_smoothing)
+def _getce(classes, label_smoothing):
+    return nn.CrossEntropyLoss() if not label_smoothing else LabelSmoothingLoss(classes=classes, smoothing=label_smoothing)
