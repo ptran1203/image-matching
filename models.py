@@ -166,7 +166,7 @@ class EnsembleModels(nn.Module):
         self.loss_types = loss_types
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
-        self.tta = tta
+        self.tta = tta  # E.g ['hflip', '']
         self.models = self.load_models()
 
     def load_effnets(self, backbone, fold, stage, loss_type):

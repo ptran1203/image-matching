@@ -7,6 +7,7 @@ import albumentations as A
 # from albumentations.pytorch.transforms import ToTensorV2
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
+from augment.transform import get_transforms
 
 DATA_DIR = '/content'
 
@@ -45,85 +46,6 @@ class ShoppeDataset(Dataset):
             return torch.tensor(image), input_ids, attention_mask
         else:
             return torch.tensor(image), input_ids, attention_mask, torch.tensor(row.label_group)
-
-
-def get_transforms(image_size, stage=1, norm=True):
-    if stage == 1:
-        max_size_cutout = int(image_size * 0.2)
-        transforms_train = [
-            A.Resize(image_size, image_size),
-            A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.1),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
-            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.3),
-            A.OneOf([
-                A.MedianBlur(blur_limit=(3, 7)),
-                A.MotionBlur(blur_limit=(3, 7)),
-                A.GaussNoise(),
-            ], p=0.3),
-            A.OneOf([
-                A.GridDistortion(),
-                A.OpticalDistortion(),
-            ], p=0.3),
-            A.RandomBrightnessContrast(p=0.3),
-            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.3),
-        ]
-    elif stage == 2:
-        max_size_cutout = int(image_size * 0.2)
-        transforms_train = [
-            A.Resize(image_size, image_size),
-            A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.3),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
-            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.5),
-            A.OneOf([
-                A.MedianBlur(blur_limit=(3, 7)),
-                A.MotionBlur(blur_limit=(3, 7)),
-                A.GaussNoise(),
-            ], p=0.5),
-            A.OneOf([
-                A.GridDistortion(),
-                A.OpticalDistortion(),
-            ], p=0.5),
-            A.RandomBrightnessContrast(p=0.5),
-            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.5),
-        ]
-    else:
-        max_size_cutout = int(image_size * 0.25)
-        transforms_train = [
-            A.Resize(image_size, image_size),
-            A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.5),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
-            A.ShiftScaleRotate(shift_limit=0.25, scale_limit=0.25, rotate_limit=30, border_mode=0, p=0.7),
-            A.OneOf([
-                A.MedianBlur(blur_limit=(3, 7)),
-                A.MotionBlur(blur_limit=(3, 7)),
-                A.GaussNoise(),
-            ], p=0.7),
-            A.OneOf([
-                A.GridDistortion(),
-                A.OpticalDistortion(),
-            ], p=0.7),
-            A.RandomBrightnessContrast(p=0.7),
-            A.Cutout(max_h_size=max_size_cutout, max_w_size=max_size_cutout, num_holes=2, p=0.7),
-        ]
-
-    transforms_val = [
-        A.Resize(image_size, image_size),
-    ]
-
-    if norm:
-        transforms_train.append(A.Normalize())
-        transforms_val.append(A.Normalize())
-    else:
-        transforms_train.append(A.Normalize(mean=0, std=1))
-        transforms_val.append(A.Normalize(mean=0, std=1))
-
-    # transforms_train.append(ToTensorV2(p=1.0))
-    # transforms_val.append(ToTensorV2(p=1.0))
-
-    return A.Compose(transforms_train), A.Compose(transforms_val)
 
 
 def get_df(groups=0):
