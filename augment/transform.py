@@ -20,7 +20,7 @@ def get_transforms(image_size, stage=1, norm=True):
                 A.OpticalDistortion(),
             ], p=0.3),
             A.RandomBrightnessContrast(p=0.3),
-            A.GridMask(num_grid=5, p=0.3),
+            GridMask(num_grid=5, p=0.3),
         ]
     elif stage == 2:
         max_size_cutout = int(image_size * 0.2)
@@ -40,7 +40,7 @@ def get_transforms(image_size, stage=1, norm=True):
                 A.OpticalDistortion(),
             ], p=0.5),
             A.RandomBrightnessContrast(p=0.5),
-            A.GridMask(num_grid=(5, 7), p=0.5),
+            GridMask(num_grid=(5, 7), p=0.5),
         ]
     else:
         max_size_cutout = int(image_size * 0.25)
@@ -60,7 +60,7 @@ def get_transforms(image_size, stage=1, norm=True):
                 A.OpticalDistortion(),
             ], p=0.7),
             A.RandomBrightnessContrast(p=0.7),
-            A.GridMask(num_grid=(3, 7), p=0.7),
+            GridMask(num_grid=(3, 7), p=0.7),
         ]
 
     transforms_val = [
