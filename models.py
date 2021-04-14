@@ -242,7 +242,7 @@ class EnsembleModels(nn.Module):
     def get_TTA(img):
         return [
             img,
-            img.flip(3)  # Hflip
+            img.flip(3),  # Hflip
             scale_img(img, 0.8),
         ]
 
