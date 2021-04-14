@@ -178,7 +178,7 @@ class EnsembleModels(nn.Module):
         if backbone == 'auto':
             backbone = self.get_backbone(weight_path)
 
-        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}')
+        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {out_dim}')
         if backbone == 'resnest50':
             model = Resnest50(out_dim=out_dim, pretrained=False, loss_type=loss_type)
         else:
