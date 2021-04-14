@@ -174,6 +174,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
 def get_criterion(args, out_dim, margins):
     LossFunction = loss_from_config(args.loss_config, adaptive_margins=margins, classes=out_dim)
     loss_config = decode_config(args.loss_config)
+    print(f'Loss: {LossFunction.__name__}')
     if loss_config.triplet:
         if loss_config.loss_type == 'aarc':
             def criterion(feat, logits, target):
