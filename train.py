@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--load-from', type=str, default='')
     parser.add_argument('--groups', type=int, default=0)
     parser.add_argument('--stage', type=int, default=1)
-    parser.add_argument('--warmup-epochs', type=int, default=10)
+    parser.add_argument('--warmup-epochs', type=int, default=3)
     parser.add_argument('--full', action='store_true')
     parser.add_argument('--freezebn', action='store_true')
     
