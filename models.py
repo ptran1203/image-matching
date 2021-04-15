@@ -180,7 +180,7 @@ class EnsembleModels(nn.Module):
             # overring outdim
             
         else:
-            weight_path = weight_path.split("outdim") + f"outdim{self.out_dim}.pth"
+            weight_path = weight_path.split("outdim")[0] + f"outdim{self.out_dim}.pth"
 
         print(weight_path)
         if backbone == 'auto':
