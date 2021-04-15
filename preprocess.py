@@ -27,11 +27,11 @@ def main():
     if args.method == 'group':
         skf = GroupKFold(5, random_state=233)
         df['fold'] = -1
-        for i, (train_idx, valid_idx) in enumerate(skf.split(df, df['label_group'])):
+        for i, (train_idx, valid_idx) in enumerate(skf.split(df, None, df['label_group'])):
             df.loc[valid_idx, 'fold'] = i
     else:
         skf = StratifiedKFold(5, shuffle=True, random_state=233)
-        for i, (train_idx, valid_idx) in enumerate(skf.split(df, None, df['label_group'])):
+        for i, (train_idx, valid_idx) in enumerate(skf.split(df, df['label_group'])):
             df.loc[valid_idx, 'fold'] = i
 
     print(f'Split data {skf.__class__.__name__}')
