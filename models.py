@@ -15,7 +15,7 @@ from resnest.torch import resnest101, resnest50
 from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
-from util import search_weight, scale_img
+from util import search_weight, scale_img, freeze_bn
 # import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
@@ -23,7 +23,7 @@ root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 
 class EffnetV2(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_type='aarc'):
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_type='aarc', freezebn=False):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
@@ -37,6 +37,9 @@ class EffnetV2(nn.Module):
             planes += self.bert.config.hidden_size
         else:
             self.bert = None
+
+        if freezebn:
+            print(f'Freeze {freeze_bn(self.backbone)} layers')
 
         # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
         # self.swish = Swish_module()
@@ -95,7 +98,7 @@ class EffnetV2(nn.Module):
 
 class Resnest50(nn.Module):
 
-    def __init__(self, out_dim, pretrained=True, bert=False, loss_type='aarc'):
+    def __init__(self, out_dim, pretrained=True, bert=False, loss_type='aarc', freezebn=False):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
@@ -108,6 +111,9 @@ class Resnest50(nn.Module):
             self.bert = None
 
         self.gem = GeM()
+
+        if freezebn:
+            print(f'Freeze {freeze_bn(self.backbone)} layers')
 
         if loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
