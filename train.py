@@ -54,6 +54,7 @@ def parse_args():
     parser.add_argument('--stage', type=int, default=1)
     parser.add_argument('--warmup-epochs', type=int, default=10)
     parser.add_argument('--full', action='store_true')
+    parser.add_argument('--freezebn', action='store_true')
     
     parser.add_argument('--loss-config', type=str, default=default_loss_config)
 
@@ -231,9 +232,9 @@ def main(args):
     loss_config = decode_config(args.loss_config)
     # model
     if args.enet_type == 'resnest50':
-        model = Resnest50(out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert)
+        model = Resnest50(out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert, freezebn=args.freezebn)
     else:
-        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert)
+        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert, freezebn=args.freezebn)
     model = model.cuda()
 
     # loss func
