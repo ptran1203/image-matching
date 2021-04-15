@@ -25,7 +25,7 @@ def main():
     df['target'] = df['target'].apply(to_str)
 
     if args.method == 'group':
-        skf = GroupKFold(5, random_state=233)
+        skf = GroupKFold(5)
         df['fold'] = -1
         for i, (train_idx, valid_idx) in enumerate(skf.split(df, None, df['label_group'])):
             df.loc[valid_idx, 'fold'] = i
