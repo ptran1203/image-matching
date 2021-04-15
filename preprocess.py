@@ -10,8 +10,10 @@ def parse_args():
     args, _ = parser.parse_known_args()
     return args
 
+
 def to_str(row):
     return ' '.join(row)
+
 
 def main():
     args = parse_args()

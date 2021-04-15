@@ -232,9 +232,9 @@ def main(args):
     loss_config = decode_config(args.loss_config)
     # model
     if args.enet_type == 'resnest50':
-        model = Resnest50(out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert, freezebn=args.freezebn)
+        model = Resnest50(out_dim=out_dim, loss_config=loss_config, bert=args.bert, freezebn=args.freezebn)
     else:
-        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_type=loss_config.loss_type, bert=args.bert, freezebn=args.freezebn)
+        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_config=loss_config, bert=args.bert, freezebn=args.freezebn)
     model = model.cuda()
 
     # loss func

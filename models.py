@@ -23,7 +23,7 @@ root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 
 class EffnetV2(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_type='aarc', freezebn=False):
+    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_config={}, freezebn=False):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
@@ -43,12 +43,12 @@ class EffnetV2(nn.Module):
 
         # self.feat = nn.Linear(self.backbone.classifier.in_features, feat_dim)
         # self.swish = Swish_module()
-        if loss_type == 'aarc':
+        if loss_config.loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
-        elif loss_type == 'arc':
-            self.arc = ArcModule(feat_dim, out_dim)
-        elif loss_type == 'cos':
-            self.arc = CosModule(feat_dim, out_dim)
+        elif loss_config.loss_type == 'arc':
+            self.arc = ArcModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
+        elif loss_config.loss_type == 'cos':
+            self.arc = CosModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
@@ -98,7 +98,7 @@ class EffnetV2(nn.Module):
 
 class Resnest50(nn.Module):
 
-    def __init__(self, out_dim, pretrained=True, bert=False, loss_type='aarc', freezebn=False):
+    def __init__(self, out_dim, pretrained=True, bert=False, loss_config={}, freezebn=False):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
@@ -115,12 +115,12 @@ class Resnest50(nn.Module):
         if freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
 
-        if loss_type == 'aarc':
+        if loss_config.loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
-        elif loss_type == 'arc':
-            self.arc = ArcModule(feat_dim, out_dim)
-        elif loss_type == 'cos':
-            self.arc = CosModule(feat_dim, out_dim)
+        elif loss_config.loss_type == 'arc':
+            self.arc = ArcModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
+        elif loss_config.loss_type == 'cos':
+            self.arc = CosModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
