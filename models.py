@@ -29,7 +29,7 @@ class EffnetV2(nn.Module):
 
         feat_dim = 512
         planes = self._get_global_dim(enet_type)
-        self.enet = geffnet.create_model(enet_type,
+        self.backbone = geffnet.create_model(enet_type,
             pretrained=pretrained, as_sequential=True)[:-4]
 
         if bert:
@@ -41,7 +41,7 @@ class EffnetV2(nn.Module):
         if freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
 
-        # self.feat = nn.Linear(self.enet.classifier.in_features, feat_dim)
+        # self.feat = nn.Linear(self.backbone.classifier.in_features, feat_dim)
         # self.swish = Swish_module()
         if loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
@@ -58,7 +58,7 @@ class EffnetV2(nn.Module):
 
 
     def forward(self, x, input_ids, attention_mask, labels=None):
-        x = self.enet(x)
+        x = self.backbone(x)
         global_feat = self.gem(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
 
