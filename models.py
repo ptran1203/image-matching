@@ -179,6 +179,7 @@ class EnsembleModels(nn.Module):
             self.out_dim = self.get_outdim(weight_path)
             # overring outdim
             
+        else:
             weight_path = weight_path.split("outdim") + f"outdim{self.out_dim}.pth"
 
         print(weight_path)
