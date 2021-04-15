@@ -8,11 +8,10 @@ def get_transforms(image_size, stage=1, norm=True):
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
             A.Transpose(p=0.1),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,
-                rotate_limit=30,
+                rotate_limit=20,
                 border_mode=0,
                 p=0.3,
             ),
@@ -26,14 +25,12 @@ def get_transforms(image_size, stage=1, norm=True):
             ),
             A.OneOf([A.GridDistortion(), A.OpticalDistortion(),], p=0.3),
             A.RandomBrightnessContrast(p=0.3),
-            GridMask(num_grid=5, p=0.3),
         ]
     elif stage == 2:
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
             A.Transpose(p=0.3),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,
@@ -58,7 +55,6 @@ def get_transforms(image_size, stage=1, norm=True):
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
             A.Transpose(p=0.5),
-            A.JpegCompression(quality_lower=80, quality_upper=100),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,

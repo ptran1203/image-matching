@@ -256,7 +256,8 @@ def main(args):
 
     # lr scheduler
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, args.n_epochs-1)
-    warmup_epochs = args.warmup_epochs if args.stage == 1 else 0
+    warmup_epochs = args.warmup_epochs if args.stage == 1 else 1
+    print(warmup_epochs)
     scheduler_warmup = GradualWarmupSchedulerV2(optimizer, multiplier=10, total_epoch=warmup_epochs, after_scheduler=scheduler_cosine)
 
     # train & valid loop
