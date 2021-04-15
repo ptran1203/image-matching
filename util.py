@@ -91,9 +91,9 @@ def scale_img(img, ratio=1.0, same_shape=False, gs=32):
 
 def freeze_bn(model):
     count = 0
-    for m in model.named_modules():
-        if "layer" in m[0]:
-            if isinstance(m[1], nn.BatchNorm2d):
-                m[1].eval()
-                count += 1
+    for layer in model.modules():
+        if isinstance(layer, torch.nn.BatchNorm2d):
+            layer.eval()
+            count += 1
+
     return count
