@@ -163,21 +163,21 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean', tta=False, out_dim=False):
+    def __init__(self, backbones, folds, stages, loss_configs, weight_dir, reduction='mean', tta=False, out_dim=False):
         super(EnsembleModels, self).__init__()
 
         self.backbones = backbones
         self.folds = folds
         self.stages = stages
-        self.loss_types = loss_types
+        self.loss_configs = loss_configs
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
         self.out_dim = out_dim
         self.models = self.load_models()
 
-    def load_effnets(self, backbone, fold, stage, loss_type):
-        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_type)
+    def load_effnets(self, backbone, fold, stage, loss_config):
+        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_config)
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
         
@@ -192,11 +192,11 @@ class EnsembleModels(nn.Module):
         if backbone == 'auto':
             backbone = self.get_backbone(weight_path)
 
-        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {self.out_dim}')
+        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_config.loss_type}, dim {self.out_dim}')
         if backbone == 'resnest50':
-            model = Resnest50(out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
+            model = Resnest50(out_dim=self.out_dim, pretrained=False, loss_config=loss_config)
         else:
-            model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
+            model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_config=loss_config)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
@@ -205,7 +205,7 @@ class EnsembleModels(nn.Module):
         return model
 
     def load_models(self):
-        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages, self.loss_types] if isinstance(p, list)] + [1])
+        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages, self.loss_configs] if isinstance(p, list)] + [1])
 
         if not isinstance(self.backbones, list):
             self.backbones = [self.backbones] * max_len
@@ -216,12 +216,12 @@ class EnsembleModels(nn.Module):
         if not isinstance(self.stages, list):
             self.stages = [self.stages] * max_len
 
-        if not isinstance(self.loss_types, list):
-            self.loss_types = [self.loss_types] * max_len
+        if not isinstance(self.loss_configs, list):
+            self.loss_configs = [self.loss_configs] * max_len
 
         models = []
-        for backbone, fold, stage, loss_type in zip(self.backbones, self.folds, self.stages, self.loss_types):
-            model = self.load_effnets(backbone, fold, stage, loss_type)
+        for backbone, fold, stage, loss_config in zip(self.backbones, self.folds, self.stages, self.loss_configs):
+            model = self.load_effnets(backbone, fold, stage, loss_config)
             model.eval()
             models.append(model)
 
