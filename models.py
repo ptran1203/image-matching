@@ -177,7 +177,7 @@ class EnsembleModels(nn.Module):
         self.models = self.load_models()
 
     def load_effnets(self, backbone, fold, stage, loss_config):
-        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_config)
+        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_config.loss_type)
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
         
