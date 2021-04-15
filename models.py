@@ -177,6 +177,9 @@ class EnsembleModels(nn.Module):
         
         if not self.out_dim:
             self.out_dim = self.get_outdim(weight_path)
+            # overring outdim
+            
+            weight_path = weight_path.split("outdim") + f"outdim{elf.out_dim}.pth"
 
         if backbone == 'auto':
             backbone = self.get_backbone(weight_path)
