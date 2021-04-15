@@ -157,7 +157,7 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean', tta=False):
+    def __init__(self, backbones, folds, stages, loss_types, weight_dir, reduction='mean', tta=False, outdim=False):
         super(EnsembleModels, self).__init__()
 
         self.backbones = backbones
@@ -167,6 +167,7 @@ class EnsembleModels(nn.Module):
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
+        self.outdim = outdim
         self.models = self.load_models()
 
     def load_effnets(self, backbone, fold, stage, loss_type):
@@ -174,15 +175,17 @@ class EnsembleModels(nn.Module):
         if not os.path.exists(weight_path):
             raise FileNotFoundError(f'{weight_path} does not exist')
         
-        out_dim = self.get_outdim(weight_path)
+        if not self.outdim:
+            self.out_dim = self.get_outdim(weight_path)
+
         if backbone == 'auto':
             backbone = self.get_backbone(weight_path)
 
-        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {out_dim}')
+        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {self.out_dim}')
         if backbone == 'resnest50':
-            model = Resnest50(out_dim=out_dim, pretrained=False, loss_type=loss_type)
+            model = Resnest50(out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
         else:
-            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_type=loss_type)
+            model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_type=loss_type)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
