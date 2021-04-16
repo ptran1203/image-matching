@@ -54,7 +54,8 @@ class EffnetV2(nn.Module):
         self.bn = nn.BatchNorm1d(feat_dim)
         # self.bn.bias.requires_grad_(False)  # no shift
 
-        self.pooling = GeM()
+        # self.pooling = GeM()
+        self.pooling = nn.AdaptiveAvgPool2d(1)
 
 
     def forward(self, x, input_ids, attention_mask, labels=None):
@@ -114,7 +115,8 @@ class Resnest50(nn.Module):
         else:
             self.bert = None
 
-        self.pooling = GeM()
+        # self.pooling = GeM()
+        self.pooling = nn.AdaptiveAvgPool2d(1)
 
         if freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
