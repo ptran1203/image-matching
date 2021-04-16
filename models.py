@@ -54,12 +54,12 @@ class EffnetV2(nn.Module):
         self.bn = nn.BatchNorm1d(feat_dim)
         # self.bn.bias.requires_grad_(False)  # no shift
 
-        self.gem = GeM()
+        self.pooling = GeM()
 
 
     def forward(self, x, input_ids, attention_mask, labels=None):
         x = self.backbone(x)
-        global_feat = self.gem(x)
+        global_feat = self.pooling(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
 
         if self.bert is not None:
@@ -68,7 +68,7 @@ class EffnetV2(nn.Module):
 
         feat = self.to_feat(global_feat)
         feat = self.bn(feat)
-        feat = l2_norm(feat, axis=-1)
+        # feat = l2_norm(feat, axis=-1)
 
         if labels is not None:
             logits_m = self.arc(feat, labels)
@@ -95,6 +95,10 @@ class EffnetV2(nn.Module):
         elif 'b7' in enet_type:
             return 2560
 
+    def _init_params(self):
+        nn.init.constant_(self.bn.weight, 1)
+        nn.init.constant_(self.bn.bias, 0)
+
 
 class Resnest50(nn.Module):
 
@@ -102,7 +106,7 @@ class Resnest50(nn.Module):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
-        self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=True).children())[:-2])
+        self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=pretrained).children())[:-2])
         planes = 2048
         if bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
@@ -110,7 +114,7 @@ class Resnest50(nn.Module):
         else:
             self.bert = None
 
-        self.gem = GeM()
+        self.pooling = GeM()
 
         if freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
@@ -128,7 +132,7 @@ class Resnest50(nn.Module):
 
     def forward(self, x, input_ids=None, attention_mask=None, labels=None):
         x = self.backbone(x)
-        global_feat = self.gem(x)
+        global_feat = self.pooling(x)
         global_feat = global_feat.view(global_feat.size()[0], -1)
 
         if self.bert is not None:
@@ -137,13 +141,17 @@ class Resnest50(nn.Module):
 
         feat = self.to_feat(global_feat)
         feat = self.bn(feat)
-        feat = l2_norm(feat, axis=-1)
+        # feat = l2_norm(feat, axis=-1)
 
         if labels is not None:
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
         return feat, logits_m
+
+    def _init_params(self):
+        nn.init.constant_(self.bn.weight, 1)
+        nn.init.constant_(self.bn.bias, 0)
 
 
 class GeM(nn.Module):
@@ -269,7 +277,7 @@ class EnsembleModels(nn.Module):
         return path.split('/')[-1].split('_fold')[0]
 
 
-def inference(model, test_loader, tqdm=tqdm):
+def inference(model, test_loader, tqdm=tqdm, normalize=False):
     embeds = []
     is_ensemble = isinstance(model, EnsembleModels)
     if not is_ensemble:
@@ -281,6 +289,8 @@ def inference(model, test_loader, tqdm=tqdm):
             if not is_ensemble:
                 feat = feat[1]
 
+            if normalize:
+                feat = l2_norm(feat)
             image_embeddings = feat.detach().cpu().numpy()
             embeds.append(image_embeddings)
 
@@ -342,7 +352,7 @@ class ArcModule(nn.Module):
         self.mm = torch.tensor(math.sin(math.pi - margin) * margin)
 
     def forward(self, inputs, labels):
-        cos_th = F.linear(inputs, F.normalize(self.weight))
+        cos_th = F.linear(F.normalize(inputs), F.normalize(self.weight))
         cos_th = cos_th.clamp(-1, 1)
         sin_th = torch.sqrt(1.0 - torch.pow(cos_th, 2))
         cos_th_m = cos_th * self.cos_m - sin_th * self.sin_m
