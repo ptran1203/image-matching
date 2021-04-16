@@ -26,7 +26,7 @@ from models import EffnetV2, Resnest50
 from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
 from losses import encode_config, loss_from_config, decode_config
-from util import weight_file
+from util import weight_file, l2_norm
 from sklearn.preprocessing import LabelEncoder
 
 default_loss_config = encode_config(loss_type='cos', margin=0.6, scale=30, label_smoothing=0.0, triplet=False, cls='CE')
@@ -164,6 +164,7 @@ def val_epoch(model, valid_loader, criterion, valid_df):
                 attention_mask.cuda(), target.cuda())
 
             feat, _ = model(image, input_ids, attention_mask)
+            feat = l2_norm(feat)
             # embeds.append(torch.cat([global_feat, local_feat], 1).detach().cpu().numpy())
             embeds.append(feat.detach().cpu().numpy())
 
