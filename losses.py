@@ -15,7 +15,7 @@ class DictToObject(object):
                setattr(self, a, obj(b) if isinstance(b, dict) else b)
 
 
-def encode_config(loss_type, margin, scale, label_smoothing, triplet, cls):
+def encode_config(loss_type, margin=0.5, scale=30, label_smoothing=0.0, triplet=False, cls='ce'):
     return f"loss_type={loss_type}, margin={margin}, scale={scale}, label_smoothing={label_smoothing}, triplet={triplet}, cls={cls}"
 
 

@@ -1,6 +1,7 @@
 import math
 import os
 import numpy as np
+import re
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,6 +17,7 @@ from util import l2_norm
 from tqdm import tqdm
 from transformers import AutoModel
 from util import search_weight, scale_img, freeze_bn
+from losses import decode_config, encode_config
 # import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
@@ -173,40 +175,28 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, backbones, folds, stages, loss_configs, weight_dir, reduction='mean', tta=False, out_dim=False):
+    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False):
         super(EnsembleModels, self).__init__()
 
-        self.backbones = backbones
-        self.folds = folds
-        self.stages = stages
-        self.loss_configs = loss_configs
+        self.weight_list = weight_list
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
-        self.out_dim = out_dim
         self.models = self.load_models()
 
-    def load_effnets(self, backbone, fold, stage, loss_config):
-        weight_path = search_weight(self.weight_dir, backbone, fold, stage, loss_config.loss_type)
+    def load_effnets(self, weight_path):
         if not os.path.exists(weight_path):
+            print(f"Existing weights are {os.listdir(self.weight_dir)}")
             raise FileNotFoundError(f'{weight_path} does not exist')
-        
-        if not self.out_dim:
-            self.out_dim = self.get_outdim(weight_path)
-            # overring outdim
-            
-        else:
-            weight_path = weight_path.split("outdim")[0] + f"outdim{self.out_dim}.pth"
 
-        print(weight_path)
-        if backbone == 'auto':
-            backbone = self.get_backbone(weight_path)
+        backbone, fold, stage, loss_type, out_dim = self.get_info_from_weight(weight_path)
+        loss_config = decode_config(encode_config(loss_type=loss_type))
 
-        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_config.loss_type}, dim {self.out_dim}')
+        print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {out_dim}')
         if backbone == 'resnest50':
-            model = Resnest50(out_dim=self.out_dim, pretrained=False, loss_config=loss_config)
+            model = Resnest50(out_dim=out_dim, pretrained=False, loss_config=loss_config)
         else:
-            model = EffnetV2(backbone, out_dim=self.out_dim, pretrained=False, loss_config=loss_config)
+            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_config=loss_config)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
@@ -215,23 +205,9 @@ class EnsembleModels(nn.Module):
         return model
 
     def load_models(self):
-        max_len = max([len(p) for p in [self.backbones, self.folds, self.stages, self.loss_configs] if isinstance(p, list)] + [1])
-
-        if not isinstance(self.backbones, list):
-            self.backbones = [self.backbones] * max_len
-
-        if not isinstance(self.folds, list):
-            self.folds = [self.folds] * max_len
-
-        if not isinstance(self.stages, list):
-            self.stages = [self.stages] * max_len
-
-        if not isinstance(self.loss_configs, list):
-            self.loss_configs = [self.loss_configs] * max_len
-
         models = []
-        for backbone, fold, stage, loss_config in zip(self.backbones, self.folds, self.stages, self.loss_configs):
-            model = self.load_effnets(backbone, fold, stage, loss_config)
+        for weight_path in self.weight_list:
+            model = self.load_effnets(weight_path)
             model.eval()
             models.append(model)
 
@@ -271,12 +247,27 @@ class EnsembleModels(nn.Module):
         ]
 
     @staticmethod
-    def get_outdim(path):
-        return int(path.split(".")[0].split("outdim")[1])
+    def get_info_from_weight(path):
+        """
+        Inputs form: {backbone}_fold{fold}_stage{stage}_{loss_type}_outdim{outdim}.pth
+        e.g: tf_efficientnet_b1_ns_fold0_stage1_cos_outdim11014.pth
+        """
+        def reformat(value):
+            try:
+                return int(value)
+            except:
+                # if contains number, get number
+                numbers = re.findall(r'[0-9]+', value)
+                if numbers:
+                    return int(numbers[0])
+                return value
 
-    @staticmethod
-    def get_backbone(path):
-        return path.split('/')[-1].split('_fold')[0]
+        # Get backbone first
+        backbone, parts = path.split('_fold')
+        fold, stage, loss_type, outdim = [reformat(v) for v in parts.split("_")]
+
+        return backbone, fold, stage, loss_type, outdim
+
 
 
 def inference(model, test_loader, tqdm=tqdm, normalize=False):
