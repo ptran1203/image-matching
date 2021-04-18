@@ -185,12 +185,12 @@ class EnsembleModels(nn.Module):
         self.models = self.load_models()
 
     def load_effnets(self, weight_path):
+        backbone, fold, stage, loss_type, out_dim = self.get_info_from_weight(weight_path)
+        loss_config = decode_config(encode_config(loss_type=loss_type))
+        weight_path = os.path.join(self.weight_dir, weight_path)
         if not os.path.exists(weight_path):
             print(f"Existing weights are {os.listdir(self.weight_dir)}")
             raise FileNotFoundError(f'{weight_path} does not exist')
-
-        backbone, fold, stage, loss_type, out_dim = self.get_info_from_weight(weight_path)
-        loss_config = decode_config(encode_config(loss_type=loss_type))
 
         print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {out_dim}')
         if backbone == 'resnest50':
