@@ -101,15 +101,14 @@ def search_similiar_images(embeds, test_df, thr=0.5):
     return preds, scores
 
 
-def generate_embeddings(model, test_loader):
+def generate_embeddings(model, test_loader, use_global_feat=False):
     embeds = []
 
     with torch.no_grad():
         for img in tqdm(test_loader): 
             img = img.cuda()
-            feat, _ = model(img)
-
-            image_embeddings = feat.detach().cpu().numpy()
+            global_feat, feat, _ = model(img)
+            image_embeddings = (global_feat if use_global_feat else feat).detach().cpu().numpy()
             embeds.append(image_embeddings)
         
     _ = gc.collect()
@@ -132,7 +131,7 @@ def train_epoch(model, loader, optimizer, criterion):
 
         optimizer.zero_grad()
 
-        feat, logits_m = model(image, input_ids, attention_mask, target)
+        global_feat, feat, logits_m = model(image, input_ids, attention_mask, target)
         loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()
@@ -151,7 +150,7 @@ def train_epoch(model, loader, optimizer, criterion):
     return train_loss, accs
 
 
-def val_epoch(model, valid_loader, criterion, valid_df):
+def val_epoch(model, valid_loader, criterion, valid_df, args):
 
     model.eval()
     embeds = []
@@ -163,9 +162,12 @@ def val_epoch(model, valid_loader, criterion, valid_df):
                 image.cuda(), input_ids.cuda(),
                 attention_mask.cuda(), target.cuda())
 
-            feat, _ = model(image, input_ids, attention_mask)
-            feat = l2_norm(feat)
-            # embeds.append(torch.cat([global_feat, local_feat], 1).detach().cpu().numpy())
+            global_feat, feat, _ = model(image, input_ids, attention_mask)
+            if args.global_feat:
+                feat = l2_norm(global_feat)
+            else:
+                feat = l2_norm(feat)
+
             embeds.append(feat.detach().cpu().numpy())
 
     embeds = np.concatenate(embeds)
@@ -242,7 +244,7 @@ def main(args):
     criterion = get_criterion(args, out_dim, margins)
 
     # optimizer
-    optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
+    optimizer = optim.AdamW(model.parameters(), lr=args.init_lr)
 
     # load pretrained
     if args.load_from and args.load_from != 'none':
@@ -273,7 +275,7 @@ def main(args):
         scheduler_warmup.step(epoch - 1)
 
         train_loss, acc_list = train_epoch(model, train_loader, optimizer, criterion)
-        f1score = val_epoch(model, valid_loader, criterion, df_valid)
+        f1score = val_epoch(model, valid_loader, criterion, df_valid, args)
 
         content = time.ctime() + ' ' + \
             (

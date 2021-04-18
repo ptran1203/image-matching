@@ -25,12 +25,16 @@ root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 
 class EffnetV2(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True, bert=False, loss_config={}, freezebn=False):
+    def __init__(self, enet_type, out_dim, pretrained=True,
+        bert=False, loss_config={}, freezebn=False,
+        training=True
+    ):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
         feat_dim = 512
         planes = self._get_global_dim(enet_type)
+        self.training = training
         self.backbone = geffnet.create_model(enet_type,
             pretrained=pretrained, as_sequential=True)[:-4]
 
@@ -77,7 +81,7 @@ class EffnetV2(nn.Module):
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
-        return feat, logits_m
+        return global_feat, feat, logits_m
 
     @staticmethod
     def _get_global_dim(enet_type):
@@ -99,9 +103,10 @@ class EffnetV2(nn.Module):
             return 2560
 
     def _init_params(self):
+        nn.init.xavier_normal_(self.to_feat.weight)
+        nn.init.constant_(self.to_feat.bias, 0)
         nn.init.constant_(self.bn.weight, 1)
         nn.init.constant_(self.bn.bias, 0)
-
 
 class Resnest50(nn.Module):
 
@@ -151,9 +156,11 @@ class Resnest50(nn.Module):
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
-        return feat, logits_m
+        return global_feat, feat, logits_m
 
     def _init_params(self):
+        nn.init.xavier_normal_(self.to_feat.weight)
+        nn.init.constant_(self.to_feat.bias, 0)
         nn.init.constant_(self.bn.weight, 1)
         nn.init.constant_(self.bn.bias, 0)
 
@@ -175,13 +182,14 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False):
+    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False, global_feat=False):
         super(EnsembleModels, self).__init__()
 
         self.weight_list = weight_list
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
+        self.global_feat = global_feat
         self.models = self.load_models()
 
     def load_effnets(self, weight_path):
@@ -219,14 +227,20 @@ class EnsembleModels(nn.Module):
             if self.tta:
                 tta_preds = []
                 for trans_img in self.get_TTA(img):
-                    feat, _ = model(trans_img, input_ids, att_mask)
-                    tta_preds.append(feat)
+                    global_feat, feat, _ = model(trans_img, input_ids, att_mask)
+                    if self.global_feat:
+                        tta_preds.append(global_feat)
+                    else:
+                        tta_preds.append(feat)
 
                 mean_pred = torch.mean(torch.stack(tta_preds), dim=0)
                 results.append(l2_norm(mean_pred))
             else:
-                feat, _ = model(img, input_ids, att_mask)
-                results.append(feat)
+                global_feat, feat, _ = model(img, input_ids, att_mask)
+                if self.global_feat:
+                    results.append(global_feat)
+                else:
+                    results.append(feat)
 
         if len(results) == 1:
             return results[0]
