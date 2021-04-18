@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument('--warmup-epochs', type=int, default=3)
     parser.add_argument('--full', action='store_true')
     parser.add_argument('--freezebn', action='store_true')
-    
+    parser.add_argument('--global-feat', action='store_true')
     parser.add_argument('--loss-config', type=str, default=default_loss_config)
 
     args, _ = parser.parse_known_args()
