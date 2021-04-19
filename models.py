@@ -76,8 +76,8 @@ class Model(nn.Module):
 
     def forward(self, image, label):
         feature = self.extract_feat(image)
-        #logits = self.final(feature,label)
-        return feature
+        logits = self.final(feature,label)
+        return feature, logits
 
     def extract_feat(self, x):
         batch_size = x.shape[0]
