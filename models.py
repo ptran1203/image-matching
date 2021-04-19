@@ -125,14 +125,10 @@ class Resnest50(nn.Module):
         self.bn = nn.BatchNorm1d(feat_dim)
 
 
-    def forward(self, x, input_ids=None, attention_mask=None, labels=None):
+    def forward(self, x, labels=None):
         x = self.backbone(x)
         feat = self.pooling(x)
         feat = feat.view(feat.size()[0], -1)
-
-        if self.bert is not None:
-            text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            feat = torch.cat([feat, text], 1)
 
         if not self.args.global_feat:
             feat = self.to_feat(feat)

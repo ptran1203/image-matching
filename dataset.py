@@ -33,19 +33,16 @@ class ShoppeDataset(Dataset):
     def __getitem__(self, index):
         row = self.csv.iloc[index]
         image = cv2.imread(os.path.join(self.img_dir, row.image))[:,:,::-1]
-        text = row.title
-        text = self.tokenizer(text, padding='max_length', truncation=True, max_length=16, return_tensors="pt")
-        input_ids = text['input_ids'][0]
-        attention_mask = text['attention_mask'][0]
-        
+
         # transform
         image = self.transform(image=image)['image'].astype(np.float32)
 
         image = image.transpose(2, 0, 1)
+
         if self.mode == 'test':
-            return torch.tensor(image), input_ids, attention_mask
+            return torch.tensor(image)
         else:
-            return torch.tensor(image), input_ids, attention_mask, torch.tensor(row.label_group)
+            return torch.tensor(image), torch.tensor(row.label_group)
 
 
 def get_df(groups=0):

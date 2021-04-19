@@ -123,15 +123,13 @@ def train_epoch(model, loader, optimizer, criterion):
     accs = []
 
     bar = tqdm(loader)
-    for image, input_ids, attention_mask, target in bar:
+    for image, target in bar:
 
-        image, input_ids, attention_mask, target = (
-            image.cuda(), input_ids.cuda(),
-            attention_mask.cuda(), target.cuda())
+        image, target = image.cuda(), target.cuda()
 
         optimizer.zero_grad()
 
-        feat, logits_m = model(image, input_ids, attention_mask, target)
+        feat, logits_m = model(image, target)
         loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()
@@ -157,12 +155,9 @@ def val_epoch(model, valid_loader, criterion, valid_df, args):
     bar = tqdm(valid_loader)
 
     with torch.no_grad():
-        for image, input_ids, attention_mask, target in bar:
-            image, input_ids, attention_mask, target = (
-                image.cuda(), input_ids.cuda(),
-                attention_mask.cuda(), target.cuda())
-
-            feat, _ = model(image, input_ids, attention_mask)
+        for image, target in bar:
+            image, target = image.cuda(), target.cuda()
+            feat, _ = model(image)
             feat = l2_norm(feat)
 
             embeds.append(feat.detach().cpu().numpy())
