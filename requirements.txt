@@ -2,3 +2,4 @@ resnest==0.0.6b20201012
 git+https://github.com/ildoonet/pytorch-gradual-warmup-lr.git
 geffnet==0.9.8
 transformers
+timm==0.4.5
