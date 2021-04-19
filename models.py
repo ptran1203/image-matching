@@ -48,6 +48,9 @@ class EffnetV2(nn.Module):
 
         # self.feat = nn.Linear(self.backbone.classifier.in_features, feat_dim)
         # self.swish = Swish_module()
+        if self.args.global_feat:
+            feat_dim = planes
+
         if loss_config.loss_type == 'aarc':
             self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
         elif loss_config.loss_type == 'arc':
@@ -121,6 +124,9 @@ class Resnest50(nn.Module):
             planes += self.bert.config.hidden_size
         else:
             self.bert = None
+
+        if self.args.global_feat:
+            feat_dim = planes
 
         # self.pooling = GeM()
         self.pooling = nn.AdaptiveAvgPool2d(1)
