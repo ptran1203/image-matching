@@ -22,7 +22,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.backends import cudnn
 from dataset import ShoppeDataset, get_df, get_transforms
 from util import GradualWarmupSchedulerV2, row_wise_f1_score
-from models import EffnetV2, Resnest50
+from models import Model, Resnest50
 from losses import ArcFaceLossAdaptiveMargin
 from losses import TripletLoss
 from losses import encode_config, loss_from_config, decode_config
@@ -234,7 +234,7 @@ def main(args):
     if args.enet_type == 'resnest50':
         model = Resnest50(out_dim=out_dim, loss_config=loss_config, args=args)
     else:
-        model = EffnetV2(args.enet_type, out_dim=out_dim, loss_config=loss_config, args=args)
+        model = Model(args.enet_type, out_dim=out_dim, loss_config=loss_config, args=args)
     model = model.cuda()
 
     # loss func

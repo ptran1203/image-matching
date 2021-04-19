@@ -18,97 +18,77 @@ from tqdm import tqdm
 from transformers import AutoModel
 from util import search_weight, scale_img, freeze_bn
 from losses import decode_config, encode_config
-# import timm
+import timm
 
 root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 
 
-class EffnetV2(nn.Module):
+class Model(nn.Module):
 
-    def __init__(self, enet_type, out_dim, pretrained=True,
+    def __init__(self, model_name, out_dim, pretrained=True,
         loss_config={}, args={},
     ):
-        super(EffnetV2, self).__init__()
-        enet_type = enet_type.replace('-', '_')
+        super(Model, self).__init__()
 
-        feat_dim = 512
-        planes = self._get_global_dim(enet_type)
-        self.args = args
-        self.backbone = geffnet.create_model(enet_type,
-            pretrained=pretrained, as_sequential=True)[:-4]
+        fc_dim = 512
+        n_classes = out_dim
 
-        if self.args.bert:
-            self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
-            planes += self.bert.config.hidden_size
-        else:
-            self.bert = None
+        self.backbone = timm.create_model(model_name, pretrained=pretrained)
+        if model_name == 'resnext50_32x4d':
+            final_in_features = self.backbone.fc.in_features
+            self.backbone.fc = nn.Identity()
+            self.backbone.global_pool = nn.Identity()
 
-        if self.args.freezebn:
-            print(f'Freeze {freeze_bn(self.backbone)} layers')
+        elif model_name.startswith('tf_efficientnet'):
+            final_in_features = self.backbone.classifier.in_features
+            self.backbone.classifier = nn.Identity()
+            self.backbone.global_pool = nn.Identity()
 
-        # self.feat = nn.Linear(self.backbone.classifier.in_features, feat_dim)
-        # self.swish = Swish_module()
-        if self.args.global_feat:
-            feat_dim = planes
+        elif model_name == 'nfnet_f3':
+            final_in_features = self.backbone.head.fc.in_features
+            self.backbone.head.fc = nn.Identity()
+            self.backbone.head.global_pool = nn.Identity()
 
-        if loss_config.loss_type == 'aarc':
-            self.arc = ArcMarginProduct_subcenter(feat_dim, out_dim)
-        elif loss_config.loss_type == 'arc':
-            self.arc = ArcModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
-        elif loss_config.loss_type == 'cos':
-            self.arc = CosModule(feat_dim, out_dim, scale=loss_config.scale, margin=loss_config.margin)
+        self.pooling =  nn.AdaptiveAvgPool2d(1)
 
-        self.to_feat = nn.Linear(planes, feat_dim)
-        self.bn = nn.BatchNorm1d(feat_dim)
-        # self.bn.bias.requires_grad_(False)  # no shift
+        self.use_fc = not args.global_feat
 
-        # self.pooling = GeM()
-        self.pooling = nn.AdaptiveAvgPool2d(1)
+        self.dropout = nn.Dropout(p=0.2)
+        self.fc = nn.Linear(final_in_features, fc_dim)
+        self.bn = nn.BatchNorm1d(fc_dim)
+        self._init_params()
+        final_in_features = fc_dim
 
-
-    def forward(self, x, input_ids, attention_mask, labels=None):
-        x = self.backbone(x)
-        feat = self.pooling(x)
-        feat = feat.view(feat.size()[0], -1)
-
-        if self.bert is not None:
-            text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            feat = torch.cat([feat, text], 1)
-
-        if not self.args.global_feat:
-            feat = self.to_feat(feat)
-            feat = self.bn(feat)
-
-        if labels is not None:
-            logits_m = self.arc(feat, labels)
-        else:
-            logits_m = None
-        return feat, logits_m
-
-    @staticmethod
-    def _get_global_dim(enet_type):
-        if 'b0' in enet_type:
-            return 1208
-        elif 'b1' in enet_type:
-            return 1280
-        elif 'b2' in enet_type:
-            return 1408
-        elif 'b3' in enet_type:
-            return 1536
-        elif 'b4' in enet_type:
-            return 1792
-        elif 'b5' in enet_type:
-            return 2048
-        elif 'b6' in enet_type:
-            return 2304
-        elif 'b7' in enet_type:
-            return 2560
+        self.final = ArcMarginProduct(
+            final_in_features,
+            n_classes,
+            scale = loss_config.scale,
+            margin = loss_config.margin,
+            easy_margin = False,
+            ls_eps = 0.0
+        )
 
     def _init_params(self):
-        nn.init.xavier_normal_(self.to_feat.weight)
-        nn.init.constant_(self.to_feat.bias, 0)
+        nn.init.xavier_normal_(self.fc.weight)
+        nn.init.constant_(self.fc.bias, 0)
         nn.init.constant_(self.bn.weight, 1)
         nn.init.constant_(self.bn.bias, 0)
+
+    def forward(self, image, label):
+        feature = self.extract_feat(image)
+        #logits = self.final(feature,label)
+        return feature
+
+    def extract_feat(self, x):
+        batch_size = x.shape[0]
+        x = self.backbone(x)
+        x = self.pooling(x).view(batch_size, -1)
+
+        if self.use_fc:
+            x = self.dropout(x)
+            x = self.fc(x)
+            x = self.bn(x)
+        return x
 
 class Resnest50(nn.Module):
 
@@ -210,7 +190,7 @@ class EnsembleModels(nn.Module):
         if backbone == 'resnest50':
             model = Resnest50(out_dim=out_dim, pretrained=False, loss_config=loss_config, args=self.args)
         else:
-            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_config=loss_config, args=self.args)
+            model = Model(backbone, out_dim=out_dim, pretrained=False, loss_config=loss_config, args=self.args)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
@@ -283,7 +263,6 @@ class EnsembleModels(nn.Module):
         return backbone, fold, stage, loss_type, outdim
 
 
-
 def inference(model, test_loader, tqdm=tqdm, normalize=False):
     embeds = []
     is_ensemble = isinstance(model, EnsembleModels)
@@ -343,41 +322,43 @@ class ArcMarginProduct_subcenter(nn.Module):
         return cosine
 
 
-class ArcModule(nn.Module):
-    def __init__(self, in_features, out_features, scale=30, margin=0.3):
-        super().__init__()
+class ArcMarginProduct(nn.Module):
+    def __init__(self, in_features, out_features, scale=30.0, margin=0.50, easy_margin=False, ls_eps=0.0):
+        super(ArcMarginProduct, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.s = scale
-        self.m = margin
+        self.scale = scale
+        self.margin = margin
+        self.ls_eps = ls_eps  # label smoothing
         self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
-        nn.init.xavier_normal_(self.weight)
+        nn.init.xavier_uniform_(self.weight)
 
+        self.easy_margin = easy_margin
         self.cos_m = math.cos(margin)
         self.sin_m = math.sin(margin)
-        self.th = torch.tensor(math.cos(math.pi - margin))
-        self.mm = torch.tensor(math.sin(math.pi - margin) * margin)
+        self.th = math.cos(math.pi - margin)
+        self.mm = math.sin(math.pi - margin) * margin
 
-    def forward(self, inputs, labels):
-        cos_th = F.linear(F.normalize(inputs), F.normalize(self.weight))
-        cos_th = cos_th.clamp(-1, 1)
-        sin_th = torch.sqrt(1.0 - torch.pow(cos_th, 2))
-        cos_th_m = cos_th * self.cos_m - sin_th * self.sin_m
-        # print(type(cos_th), type(self.th), type(cos_th_m), type(self.mm))
-        cos_th_m = torch.where(cos_th > self.th, cos_th_m, cos_th - self.mm)
+    def forward(self, input, label):
+        # --------------------------- cos(theta) & phi(theta) ---------------------------
+        cosine = F.linear(F.normalize(input), F.normalize(self.weight))
+        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        phi = cosine * self.cos_m - sine * self.sin_m
+        if self.easy_margin:
+            phi = torch.where(cosine > 0, phi, cosine)
+        else:
+            phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+        # --------------------------- convert label to one-hot ---------------------------
+        # one_hot = torch.zeros(cosine.size(), requires_grad=True, device='cuda')
+        one_hot = torch.zeros(cosine.size(), device='cuda')
+        one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+        if self.ls_eps > 0:
+            one_hot = (1 - self.ls_eps) * one_hot + self.ls_eps / self.out_features
+        # -------------torch.where(out_i = {x_i if condition_i else y_i) -------------
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
+        output *= self.scale
 
-        cond_v = cos_th - self.th
-        cond = cond_v <= 0
-        cos_th_m[cond] = (cos_th - self.mm)[cond]
-
-        if labels.dim() == 1:
-            labels = labels.unsqueeze(-1)
-        onehot = torch.zeros(cos_th.size()).cuda()
-        labels = labels.type(torch.LongTensor).cuda()
-        onehot.scatter_(1, labels, 1.0)
-        outputs = onehot * cos_th_m + (1.0 - onehot) * cos_th
-        outputs = outputs * self.s
-        return outputs
+        return output
 
 class CosModule(nn.Module):
     r"""Implement of large margin cosine distance: :
