@@ -74,9 +74,14 @@ class Model(nn.Module):
         nn.init.constant_(self.bn.weight, 1)
         nn.init.constant_(self.bn.bias, 0)
 
-    def forward(self, image, label):
+    def forward(self, image, label=None):
         feature = self.extract_feat(image)
-        logits = self.final(feature,label)
+
+        if label is not None:
+            logits = self.final(feature, label)
+        else:
+            logits = None
+
         return feature, logits
 
     def extract_feat(self, x):
