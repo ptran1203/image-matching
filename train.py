@@ -107,8 +107,8 @@ def generate_embeddings(model, test_loader, use_global_feat=False):
     with torch.no_grad():
         for img in tqdm(test_loader): 
             img = img.cuda()
-            global_feat, feat, _ = model(img)
-            image_embeddings = (global_feat if use_global_feat else feat).detach().cpu().numpy()
+            feat, _ = model(img)
+            image_embeddings = feat.detach().cpu().numpy()
             embeds.append(image_embeddings)
         
     _ = gc.collect()
@@ -131,7 +131,7 @@ def train_epoch(model, loader, optimizer, criterion):
 
         optimizer.zero_grad()
 
-        global_feat, feat, logits_m = model(image, input_ids, attention_mask, target)
+        feat, logits_m = model(image, input_ids, attention_mask, target)
         loss = criterion(feat, logits_m, target)
         loss.backward()
         optimizer.step()
@@ -162,11 +162,8 @@ def val_epoch(model, valid_loader, criterion, valid_df, args):
                 image.cuda(), input_ids.cuda(),
                 attention_mask.cuda(), target.cuda())
 
-            global_feat, feat, _ = model(image, input_ids, attention_mask)
-            if args.global_feat:
-                feat = l2_norm(global_feat)
-            else:
-                feat = l2_norm(feat)
+            feat, _ = model(image, input_ids, attention_mask)
+            feat = l2_norm(feat)
 
             embeds.append(feat.detach().cpu().numpy())
 

@@ -182,14 +182,13 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False, global_feat=False):
+    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False):
         super(EnsembleModels, self).__init__()
 
         self.weight_list = weight_list
         self.weight_dir = weight_dir
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
-        self.global_feat = global_feat
         self.models = self.load_models()
 
     def load_effnets(self, weight_path):
@@ -227,20 +226,14 @@ class EnsembleModels(nn.Module):
             if self.tta:
                 tta_preds = []
                 for trans_img in self.get_TTA(img):
-                    global_feat, feat, _ = model(trans_img, input_ids, att_mask)
-                    if self.global_feat:
-                        tta_preds.append(global_feat)
-                    else:
-                        tta_preds.append(feat)
+                    feat, _ = model(trans_img, input_ids, att_mask)
+                    tta_preds.append(feat)
 
                 mean_pred = torch.mean(torch.stack(tta_preds), dim=0)
                 results.append(l2_norm(mean_pred))
             else:
-                global_feat, feat, _ = model(img, input_ids, att_mask)
-                if self.global_feat:
-                    results.append(global_feat)
-                else:
-                    results.append(feat)
+                feat, _ = model(img, input_ids, att_mask)
+                results.append(feat)
 
         if len(results) == 1:
             return results[0]
