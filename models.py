@@ -188,11 +188,12 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False):
+    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False, args={}):
         super(EnsembleModels, self).__init__()
 
         self.weight_list = weight_list
         self.weight_dir = weight_dir
+        self.args = args
         self.reduction = reduction  # mean or concat
         self.tta = tta  # E.g ['hflip', '']
         self.models = self.load_models()
@@ -207,9 +208,9 @@ class EnsembleModels(nn.Module):
 
         print(f'Loading model {backbone} - fold {fold} - stage {stage} - loss {loss_type}, dim {out_dim}')
         if backbone == 'resnest50':
-            model = Resnest50(out_dim=out_dim, pretrained=False, loss_config=loss_config)
+            model = Resnest50(out_dim=out_dim, pretrained=False, loss_config=loss_config, args=self.args)
         else:
-            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_config=loss_config)
+            model = EffnetV2(backbone, out_dim=out_dim, pretrained=False, loss_config=loss_config, args=self.args)
         model = model.cuda()
         checkpoint = torch.load(weight_path, map_location='cuda:0')
         state_dict = checkpoint['model_state_dict']
