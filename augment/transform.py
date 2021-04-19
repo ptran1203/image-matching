@@ -7,7 +7,6 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.1),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,
@@ -30,7 +29,6 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.3),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,
@@ -54,7 +52,6 @@ def get_transforms(image_size, stage=1, norm=True):
         transforms_train = [
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
-            A.Transpose(p=0.5),
             A.ShiftScaleRotate(
                 shift_limit=0.25,
                 scale_limit=0.25,
