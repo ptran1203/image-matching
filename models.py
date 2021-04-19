@@ -26,25 +26,24 @@ root_dir = '/content' if os.path.exists('/content') else '/kaggle/input'
 class EffnetV2(nn.Module):
 
     def __init__(self, enet_type, out_dim, pretrained=True,
-        bert=False, loss_config={}, freezebn=False,
-        training=True
+        loss_config={}, args={},
     ):
         super(EffnetV2, self).__init__()
         enet_type = enet_type.replace('-', '_')
 
         feat_dim = 512
         planes = self._get_global_dim(enet_type)
-        self.training = training
+        self.args = args
         self.backbone = geffnet.create_model(enet_type,
             pretrained=pretrained, as_sequential=True)[:-4]
 
-        if bert:
+        if self.args.bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
             self.bert = None
 
-        if freezebn:
+        if self.args.freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
 
         # self.feat = nn.Linear(self.backbone.classifier.in_features, feat_dim)
@@ -66,22 +65,22 @@ class EffnetV2(nn.Module):
 
     def forward(self, x, input_ids, attention_mask, labels=None):
         x = self.backbone(x)
-        global_feat = self.pooling(x)
-        global_feat = global_feat.view(global_feat.size()[0], -1)
+        feat = self.pooling(x)
+        feat = feat.view(feat.size()[0], -1)
 
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            global_feat = torch.cat([global_feat, text], 1)
+            feat = torch.cat([feat, text], 1)
 
-        feat = self.to_feat(global_feat)
-        feat = self.bn(feat)
-        # feat = l2_norm(feat, axis=-1)
+        if not self.args.global_feat:
+            feat = self.to_feat(feat)
+            feat = self.bn(feat)
 
         if labels is not None:
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
-        return global_feat, feat, logits_m
+        return feat, logits_m
 
     @staticmethod
     def _get_global_dim(enet_type):
@@ -110,13 +109,14 @@ class EffnetV2(nn.Module):
 
 class Resnest50(nn.Module):
 
-    def __init__(self, out_dim, pretrained=True, bert=False, loss_config={}, freezebn=False):
+    def __init__(self, out_dim, pretrained=True, loss_config={}, args={}):
         super(Resnest50, self).__init__()
 
         feat_dim = 512
         self.backbone = torch.nn.Sequential(*list(resnest50(pretrained=pretrained).children())[:-2])
+        self.args = args
         planes = 2048
-        if bert:
+        if self.args.bert:
             self.bert = AutoModel.from_pretrained(f'{root_dir}/bert-base-uncased')
             planes += self.bert.config.hidden_size
         else:
@@ -125,7 +125,7 @@ class Resnest50(nn.Module):
         # self.pooling = GeM()
         self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        if freezebn:
+        if self.args.freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
 
         if loss_config.loss_type == 'aarc':
@@ -137,26 +137,26 @@ class Resnest50(nn.Module):
 
         self.to_feat = nn.Linear(planes, feat_dim)
         self.bn = nn.BatchNorm1d(feat_dim)
-        # self.bn.bias.requires_grad_(False)  # no shift
+
 
     def forward(self, x, input_ids=None, attention_mask=None, labels=None):
         x = self.backbone(x)
-        global_feat = self.pooling(x)
-        global_feat = global_feat.view(global_feat.size()[0], -1)
+        feat = self.pooling(x)
+        feat = feat.view(feat.size()[0], -1)
 
         if self.bert is not None:
             text = self.bert(input_ids=input_ids, attention_mask=attention_mask)[1]
-            global_feat = torch.cat([global_feat, text], 1)
+            feat = torch.cat([feat, text], 1)
 
-        feat = self.to_feat(global_feat)
-        feat = self.bn(feat)
-        # feat = l2_norm(feat, axis=-1)
+        if not self.args.global_feat:
+            feat = self.to_feat(feat)
+            feat = self.bn(feat)
 
         if labels is not None:
             logits_m = self.arc(feat, labels)
         else:
             logits_m = None
-        return global_feat, feat, logits_m
+        return feat, logits_m
 
     def _init_params(self):
         nn.init.xavier_normal_(self.to_feat.weight)
