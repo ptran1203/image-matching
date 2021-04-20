@@ -208,19 +208,19 @@ class EnsembleModels(nn.Module):
 
         return models
 
-    def forward(self, img, input_ids, att_mask):
+    def forward(self, img):
         results = []
         for model in self.models:
             if self.tta:
                 tta_preds = []
                 for trans_img in self.get_TTA(img):
-                    feat, _ = model(trans_img, input_ids, att_mask)
+                    feat, _ = model(trans_img)
                     tta_preds.append(feat)
 
                 mean_pred = torch.mean(torch.stack(tta_preds), dim=0)
                 results.append(l2_norm(mean_pred))
             else:
-                feat, _ = model(img, input_ids, att_mask)
+                feat, _ = model(img)
                 results.append(feat)
 
         if len(results) == 1:
@@ -270,9 +270,9 @@ def inference(model, test_loader, tqdm=tqdm, normalize=False):
     if not is_ensemble:
         model.eval()
     with torch.no_grad():
-        for i, (img, input_ids, att_mask) in enumerate(tqdm(test_loader)):
-            img, input_ids, att_mask = img.cuda(), input_ids.cuda(), att_mask.cuda()
-            feat = model(img, input_ids, att_mask)
+        for i, img in enumerate(tqdm(test_loader)):
+            img = img.cuda()
+            feat = model(img)
             if not is_ensemble:
                 feat = feat[1]
 
