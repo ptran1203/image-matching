@@ -5,7 +5,7 @@ import re
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import geffnet
+# import geffnet
 import gc
 from torch.nn.parameter import Parameter
 from torch.autograd import Variable
@@ -49,7 +49,7 @@ class Model(nn.Module):
             self.backbone.head.fc = nn.Identity()
             self.backbone.head.global_pool = nn.Identity()
 
-        self.pooling =  nn.AdaptiveAvgPool2d(1)
+        self.pooling = GeM()# nn.AdaptiveAvgPool2d(1)
 
         self.use_fc = not args.global_feat
 
@@ -95,6 +95,7 @@ class Model(nn.Module):
             x = self.bn(x)
         return x
 
+
 class Resnest50(nn.Module):
 
     def __init__(self, out_dim, pretrained=True, loss_config={}, args={}):
@@ -113,8 +114,8 @@ class Resnest50(nn.Module):
         if self.args.global_feat:
             feat_dim = planes
 
-        # self.pooling = GeM()
-        self.pooling = nn.AdaptiveAvgPool2d(1)
+        self.pooling = GeM()
+        # self.pooling = nn.AdaptiveAvgPool2d(1)
 
         if self.args.freezebn:
             print(f'Freeze {freeze_bn(self.backbone)} layers')
@@ -169,13 +170,16 @@ class GeM(nn.Module):
 
 
 class EnsembleModels(nn.Module):
-    def __init__(self, weight_list, weight_dir, reduction='mean', tta=False, args={}):
+    def __init__(self, weight_list, weight_dir, weights=[], reduction='mean', tta=False, args={}):
         super(EnsembleModels, self).__init__()
 
         self.weight_list = weight_list
         self.weight_dir = weight_dir
         self.args = args
         self.reduction = reduction  # mean or concat
+        self.weights = weights
+        if not self.weights:
+            self.weights = [1] * len(self.weight_list)
         self.tta = tta  # E.g ['hflip', '']
         self.models = self.load_models()
 

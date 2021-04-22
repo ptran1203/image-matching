@@ -1,0 +1,642 @@
+[
+    {
+        "location": "TOKYO, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "SINGAPORE",
+        "expect": "SG"
+    },
+    {
+        "location": "SHIMIZU",
+        "expect": "JP"
+    },
+    {
+        "location": "SHIMIZU, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "TOKYO",
+        "expect": "JP"
+    },
+    {
+        "location": "NEW YORK",
+        "expect": "US"
+    },
+    {
+        "location": "SINGAPORE PORT",
+        "expect": "SG"
+    },
+    {
+        "location": "NEW YORK, NY",
+        "expect": "US"
+    },
+    {
+        "location": "SHEKOU",
+        "expect": "CN"
+    },
+    {
+        "location": "KARACHI SEAPORT, PAKISTAN",
+        "expect": "PK"
+    },
+    {
+        "location": "SYDNEY",
+        "expect": ""
+    },
+    {
+        "location": "PENANG",
+        "expect": "MY"
+    },
+    {
+        "location": "SINGAPORE LAEM CHABANG",
+        "expect": "SG"
+    },
+    {
+        "location": "HOCHIMINH CITY",
+        "expect": "VN"
+    },
+    {
+        "location": "HO CHI MINH CAT LAI",
+        "expect": "VN"
+    },
+    {
+        "location": "BUSAN",
+        "expect": "KR"
+    },
+    {
+        "location": "MANILA",
+        "expect": "PH"
+    },
+    {
+        "location": "South Korea",
+        "expect": "KR"
+    },
+    {
+        "location": "CALLAO, PERU",
+        "expect": "PE"
+    },
+    {
+        "location": "ISTANBUL",
+        "expect": "TR"
+    },
+    {
+        "location": "KOBE, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "QINGDAO",
+        "expect": "CN"
+    },
+    {
+        "location": "China",
+        "expect": "CN"
+    },
+    {
+        "location": "SOUTH KOREA",
+        "expect": "KR"
+    },
+    {
+        "location": "JAKARTA",
+        "expect": "ID"
+    },
+    {
+        "location": "YOKOHAMA, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "HAMBURG",
+        "expect": ""
+    },
+    {
+        "location": "MERSIN",
+        "expect": "TR"
+    },
+    {
+        "location": "HONG KONG",
+        "expect": "HK"
+    },
+    {
+        "location": "LOS ANGELES",
+        "expect": "CL"
+    },
+    {
+        "location": "LOS ANGELES, CA",
+        "expect": "US"
+    },
+    {
+        "location": "Singapore",
+        "expect": "SG"
+    },
+    {
+        "location": "Jakarta",
+        "expect": "ID"
+    },
+    {
+        "location": "AUCKLAND",
+        "expect": ""
+    },
+    {
+        "location": "BARCELONA",
+        "expect": ""
+    },
+    {
+        "location": "SURABAYA, INDONESIA",
+        "expect": "ID"
+    },
+    {
+        "location": "INDONESIA",
+        "expect": "ID"
+    },
+    {
+        "location": "TOKYO , JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "MANILA NORTH HARBOUR",
+        "expect": "PH"
+    },
+    {
+        "location": "FREMANTLE",
+        "expect": "AU"
+    },
+    {
+        "location": "XINGANG",
+        "expect": "CN"
+    },
+    {
+        "location": "JAKARTA, JAVA",
+        "expect": "ID"
+    },
+    {
+        "location": "MONTEVIDEO",
+        "expect": "UY"
+    },
+    {
+        "location": "NAGOYA",
+        "expect": "JP"
+    },
+    {
+        "location": "ROTTERDAM",
+        "expect": "NL"
+    },
+    {
+        "location": "ALMERE",
+        "expect": "NL"
+    },
+    {
+        "location": "PIRAEUS",
+        "expect": "GR"
+    },
+    {
+        "location": "YOKOHAMA , JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "MOJI, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "NAGOYA, AICHI",
+        "expect": "JP"
+    },
+    {
+        "location": "PARANAGUA",
+        "expect": "BR"
+    },
+    {
+        "location": "ASHDOD",
+        "expect": "IL"
+    },
+    {
+        "location": "MANZANILLO, COL",
+        "expect": "MX"
+    },
+    {
+        "location": "PERU",
+        "expect": "PE"
+    },
+    {
+        "location": "CALLAO",
+        "expect": "PE"
+    },
+    {
+        "location": "GOTHENBURG",
+        "expect": "SE"
+    },
+    {
+        "location": "DURBAN",
+        "expect": "ZA"
+    },
+    {
+        "location": "FREMANTLE,WA",
+        "expect": "AU"
+    },
+    {
+        "location": "SINGAPORE, SG",
+        "expect": "SG"
+    },
+    {
+        "location": "AUCKLAND, NZ",
+        "expect": "NZ"
+    },
+    {
+        "location": "TAURANGA, NZ",
+        "expect": "NZ"
+    },
+    {
+        "location": "Brisbane",
+        "expect": ""
+    },
+    {
+        "location": "Genova Pallets REELS OF TETRA PAPER 9,088.749 KGS",
+        "expect": "IT"
+    },
+    {
+        "location": "OSAKA , JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "SHIMIZU , JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "QINGDAO PORT, CHINA",
+        "expect": "CN"
+    },
+    {
+        "location": "Kaohsiung, Taiwan",
+        "expect": "TW"
+    },
+    {
+        "location": "JOHANNESBURG,SOUTH AFRICA",
+        "expect": "ZA"
+    },
+    {
+        "location": "SINGAPORE,SINGAPORE",
+        "expect": "SG"
+    },
+    {
+        "location": "DUBAI",
+        "expect": "AE"
+    },
+    {
+        "location": "COLOMBO",
+        "expect": ""
+    },
+    {
+        "location": "KOBE",
+        "expect": "JP"
+    },
+    {
+        "location": "COLOMBO,SRI LANKA.",
+        "expect": "LK"
+    },
+    {
+        "location": "Constanta",
+        "expect": "RO"
+    },
+    {
+        "location": "LAEM CHABANG",
+        "expect": "TH"
+    },
+    {
+        "location": "KRABANG",
+        "expect": "TH"
+    },
+    {
+        "location": "SINGAPORE BUSAN",
+        "expect": "SG"
+    },
+    {
+        "location": "KOBE, HYOGO",
+        "expect": "JP"
+    },
+    {
+        "location": "DALLAS, TX",
+        "expect": "US"
+    },
+    {
+        "location": "JEBEL ALI",
+        "expect": "AE"
+    },
+    {
+        "location": "Jakarta, Java",
+        "expect": "ID"
+    },
+    {
+        "location": "Japan",
+        "expect": "JP"
+    },
+    {
+        "location": "ADELAIDE",
+        "expect": "AU"
+    },
+    {
+        "location": "SINGAPORE HONG KONG",
+        "expect": "SG"
+    },
+    {
+        "location": "OSAKA",
+        "expect": "JP"
+    },
+    {
+        "location": "Karachi",
+        "expect": "PK"
+    },
+    {
+        "location": "NHAVA SHEVA",
+        "expect": "IN"
+    },
+    {
+        "location": "TIANJIN XINGANG PT",
+        "expect": ""
+    },
+    {
+        "location": "SURABAYA",
+        "expect": "ID"
+    },
+    {
+        "location": "SURABAYA, JAVA/TANJUNG",
+        "expect": "ID"
+    },
+    {
+        "location": "MELBOURNE, VIC",
+        "expect": "AU"
+    },
+    {
+        "location": "LELYSTAD",
+        "expect": "NL"
+    },
+    {
+        "location": "CHATTOGRAM SEAPORT, ***",
+        "expect": ""
+    },
+    {
+        "location": "SAVANNAH, USA",
+        "expect": "US"
+    },
+    {
+        "location": "GARHI HARSARU",
+        "expect": "IN"
+    },
+    {
+        "location": "SEMARANG",
+        "expect": "ID"
+    },
+    {
+        "location": "Tincan Island Seaport, Lagos, Nigeria",
+        "expect": "NG"
+    },
+    {
+        "location": "YANGON",
+        "expect": "MM"
+    },
+    {
+        "location": "COLOMBO, SRI LANKA",
+        "expect": "LK"
+    },
+    {
+        "location": "AUCKLAND, NEW ZEALAND",
+        "expect": "NZ"
+    },
+    {
+        "location": "TAURANGA, BOP",
+        "expect": "NZ"
+    },
+    {
+        "location": "MADRAS/CHENNAI",
+        "expect": "IN"
+    },
+    {
+        "location": "BANGKOK",
+        "expect": "TH"
+    },
+    {
+        "location": "SHANGHAI PT",
+        "expect": ""
+    },
+    {
+        "location": "MELBOURNE",
+        "expect": ""
+    },
+    {
+        "location": "LE HAVRE",
+        "expect": ""
+    },
+    {
+        "location": "HONG KONG PORT",
+        "expect": "HK"
+    },
+    {
+        "location": "BUENAVENTURA",
+        "expect": ""
+    },
+    {
+        "location": "CEBU",
+        "expect": "PH"
+    },
+    {
+        "location": "BANGKOK (PAT)",
+        "expect": "TH"
+    },
+    {
+        "location": "SOUTHAMPTON",
+        "expect": ""
+    },
+    {
+        "location": "LOS ANGELES,CA",
+        "expect": "US"
+    },
+    {
+        "location": "KOBE , JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "SHANGHAI",
+        "expect": "CN"
+    },
+    {
+        "location": "JAKARTA, ID",
+        "expect": "ID"
+    },
+    {
+        "location": "NIIGATA",
+        "expect": "JP"
+    },
+    {
+        "location": "XIN GANG / TIANJIN",
+        "expect": "CN"
+    },
+    {
+        "location": "JAKARTA PORT INDONESIA",
+        "expect": "ID"
+    },
+    {
+        "location": "TAICHUNG",
+        "expect": "TW"
+    },
+    {
+        "location": "VARNA",
+        "expect": ""
+    },
+    {
+        "location": "COCHIN",
+        "expect": "IN"
+    },
+    {
+        "location": "KAOHSIUNG",
+        "expect": "TW"
+    },
+    {
+        "location": "CHENNAI",
+        "expect": "IN"
+    },
+    {
+        "location": "Laem Chabang",
+        "expect": "TH"
+    },
+    {
+        "location": "YOKOHAMA",
+        "expect": "JP"
+    },
+    {
+        "location": "Nagoya, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "SINGAPORE BANGKOK",
+        "expect": ""
+    },
+    {
+        "location": "TANJUNG PRIOK,JAKARTA",
+        "expect": "ID"
+    },
+    {
+        "location": "HUANGPU",
+        "expect": "CN"
+    },
+    {
+        "location": "KEAMARI, KARACHI",
+        "expect": "PK"
+    },
+    {
+        "location": "KEAMARI, KARACHI SINDH, PAKISTAN",
+        "expect": "PK"
+    },
+    {
+        "location": "LAT KRABANG",
+        "expect": "TH"
+    },
+    {
+        "location": "MONTREAL VIA HALIFAX",
+        "expect": ""
+    },
+    {
+        "location": "SIHANOUKVILLE, CAMBODIA",
+        "expect": "KH"
+    },
+    {
+        "location": "MANILA NORTH",
+        "expect": "PH"
+    },
+    {
+        "location": "MERSIN/TURKEY",
+        "expect": "TR"
+    },
+    {
+        "location": "MANZANILLO (MX)",
+        "expect": "MX"
+    },
+    {
+        "location": "JEBEL ALI PORT",
+        "expect": "AE"
+    },
+    {
+        "location": "XINGANG, TIANJN",
+        "expect": "CN"
+    },
+    {
+        "location": "XINGANG, TIANJIN",
+        "expect": "CN"
+    },
+    {
+        "location": "SIHANOUKVILLE",
+        "expect": "KH"
+    },
+    {
+        "location": "TELFORD",
+        "expect": ""
+    },
+    {
+        "location": "SINGAPORE/CY TIANJIN",
+        "expect": "SG"
+    },
+    {
+        "location": "TIANJIN",
+        "expect": "CN"
+    },
+    {
+        "location": "MIZUSHIMA, JAPAN",
+        "expect": "JP"
+    },
+    {
+        "location": "Valencia",
+        "expect": ""
+    },
+    {
+        "location": "BRISBANE",
+        "expect": ""
+    },
+    {
+        "location": "PUSAN (KIMHAE)",
+        "expect": "KR"
+    },
+    {
+        "location": "TANJUNG PERAK/SURABAYA, JAVA",
+        "expect": "ID"
+    },
+    {
+        "location": "Melbourne",
+        "expect": ""
+    },
+    {
+        "location": "GENOA",
+        "expect": "US"
+    },
+    {
+        "location": "Los Angeles, CA",
+        "expect": "US"
+    },
+    {
+        "location": "Cambridge",
+        "expect": ""
+    },
+    {
+        "location": "NAGOYA, Japan",
+        "expect": "JP"
+    },
+    {
+        "location": "Vancouver",
+        "expect": ""
+    },
+    {
+        "location": "SINGAPORE NHAVA SHEVA",
+        "expect": "SG"
+    },
+    {
+        "location": "FREMANTLE, Australia",
+        "expect": "AU"
+    },
+    {
+        "location": "SINGAPORE TOKYO",
+        "expect": "SG"
+    },
+    {
+        "location": "JAKARTA, INDONESIA",
+        "expect": "ID"
+    },
+]
