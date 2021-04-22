@@ -214,7 +214,7 @@ class EnsembleModels(nn.Module):
 
     def forward(self, img):
         results = []
-        for model in self.models:
+        for model, w in zip(self.models, self.weights):
             if self.tta:
                 tta_preds = []
                 for trans_img in self.get_TTA(img):
@@ -222,10 +222,10 @@ class EnsembleModels(nn.Module):
                     tta_preds.append(feat)
 
                 mean_pred = torch.mean(torch.stack(tta_preds), dim=0)
-                results.append(l2_norm(mean_pred))
+                results.append(l2_norm(mean_pred) * w)
             else:
                 feat, _ = model(img)
-                results.append(feat)
+                results.append(feat * w)
 
         if len(results) == 1:
             return results[0]
